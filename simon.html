@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="viewport" content="width=device-width, user-scalable=no">
+  <link rel="stylesheet" href="assets/css/main.css">
   <style>
     html,
     body {
@@ -53,6 +54,14 @@
 
     h1 {
       color: white;
+      text-shadow: 2px 0 black, -2px 0 black, 0 2px black, 0 -2px black,
+        1px 1px black, -1px -1px black, 1px -1px black, -1px 1px black;
+    }
+
+    h2 {
+      color: beige;
+      text-shadow: 2px 0 black, -2px 0 black, 0 2px black, 0 -2px black,
+        1px 1px black, -1px -1px black, 1px -1px black, -1px 1px black;
     }
 
     .blue {
@@ -74,8 +83,33 @@
 </head>
 
 <body>
-  <h1 id="msg">Espere su turno, por favor</h1>
-  <div class="grid-container">
+  <h1 id="msg">Espere... no cierre ni actualice esta pagina</h1>
+  <h2>Record actual: <span id="record-aciertos"></span> por <span id="record-jugador"></span></h2>
+  <div id="cola-canciones-cont">
+    <div id="colaCanciones">
+      <div id="sonando" class="p-3 bordes cont">
+        <h3 class="mb-3 text-white">SONANDO</h3>
+        <div id="barra-progreso"></div>
+        <div id="cancion_sonando" class="card p-2 m-2 ">
+          <span id="cancion_sonando_span"></span>
+        </div>
+
+
+        <!-- CANCIONES EN COLA -->
+      </div>
+      <div id="cola" class="p-3 bordes cont">
+        <h3 class="mb-3 text-white">CANCIONES EN ESPERA</h3>
+
+        <!-- CANCIONES EN COLA -->
+      </div>
+      <div id="canciones" class="mt-3 p-3 bordes cont" style="display: none;">
+        <h3 class="mb-3 text-white">ELIGE CANCIÓN (de 18:30 a 21:30)</h3>
+
+        <!-- CANCIONES SELECCIONABLES -->
+      </div>
+    </div>
+  </div>
+  <div class="grid-container" id="botones-cont">
     <button class="button green" id="simon_dice_verde" onclick="seleccionarColor(this)"></button>
     <button class="button red" id="simon_dice_rojo" onclick="seleccionarColor(this)"></button>
     <button class="button yellow" id="simon_dice_amarillo" onclick="seleccionarColor(this)"></button>
@@ -83,6 +117,7 @@
   </div>
   <script src="assets/js/baseUrl.js"></script>
   <script src="assets/js/simon.js"></script>
+  <script src="assets/js/main.js"></script>
 </body>
 
 </html>

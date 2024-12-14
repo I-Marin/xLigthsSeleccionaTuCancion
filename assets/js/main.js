@@ -53,7 +53,7 @@ const appendSongToDiv = (element, songName, isInQueue) => {
             songDiv.setAttribute('onclick', 'onSeleccionable(this)')
             //            SONGS_CONT.append(songDiv)
         } else {
-            songDiv.className += 'cola'
+            songDiv.className += 'espera'
             //            QUEUE_CONT.append(songDiv)
 
         }
@@ -70,21 +70,35 @@ const onSeleccionable = selecionable => {
     fetch(URL_CANCIONES)
         .then(response => response.json()
             .then(data => {
-                if (data.cancionesCola.length >= 10)
-                    return alert("Muchas canciones en cola, espera a que acabe una y podrás seleccionar la tuya ;)")
-                if (data.lengthms >= 8 * 60 * 1000)
-                    return alert("Mucho tiempo de canciones en cola, espera a que acabe una y podrás seleccionar la tuya ;)")
 
-                let ahora = new Date()
-                if (ahora.getHours() < 18 || (ahora.getHours() == 18 && ahora.getMinutes() < 30) || (ahora.getHours() == 21 && ahora.getMinutes() > 30) || ahora.getHours() >= 22) {
-                    var passw = prompt('Pensamos en el bienestar de nuestros vecinos, por eso solo se puede seleccionar canciones de 18:30 a 21:30, ¡Vente entre esas horas y disfruta del espectáculo! ;)')
-                    if (passw != '131313')
-                        return
+                if (selecionable.textContent != 'Mensaje del dia') {
+                    if (data.cancionesCola.length >= 5)
+                        return alert("Muchas canciones en cola, espera a que acabe una y podrás seleccionar la tuya ;)")
+                    if (data.lengthms >= 8 * 60 * 1000)
+                        return alert("Mucho tiempo de canciones en cola, espera a que acabe una y podrás seleccionar la tuya ;)")
+
+                    let ahora = new Date()
+                    if (ahora.getHours() < 18 || (ahora.getHours() == 18 && ahora.getMinutes() < 30) || (ahora.getHours() == 21 && ahora.getMinutes() > 30) || ahora.getHours() >= 22) {
+                        var passw = prompt('Por el bienestar de nuestros vecinos, canciones solo de 18:30 a 21:30, ¡Vente entre esas horas y disfruta del espectáculo! ;)')
+                        if (passw != '131313')
+                            return
+                    }
                 }
 
-                var dedicatoria = prompt('¡¡Es tu oportunidad!! \nPuedes escribir una dedicatoria para que suene antes de la canción:\n\n' + selecionable.textContent + '\n\n (Si eres vergonzoso, no te preocupes deja el campo en blanco y no sonará nada ;)')
+                let texto = '¡¡Es tu oportunidad!! \nPuedes escribir una dedicatoria para que suene antes de la canción:\n\n' + selecionable.textContent + '\n\n (Si eres vergonzoso, no te preocupes deja el campo en blanco y no sonará nada ;)'
+                if (selecionable.textContent == 'Cumpleaños Feliz')
+                    texto = 'Nombre de la persona que cumple años'
+                if (selecionable.textContent == 'Mensaje del dia')
+                    texto = 'El mensaje que escribas aparecerá cada 30 minutos hasta que alguien lo cambie'
+                var dedicatoria = prompt(texto)
+                if (selecionable.textContent == 'Cumpleaños Feliz' && dedicatoria == '')
+                    return alert("No podemos cantar el Cumpelaños Feliz sin saber a quien")
 
                 if (dedicatoria != undefined) {
+                    if (checkPalabrotas(dedicatoria) == true) {
+                        return alert('Por favor no utilice lenguaje soez');
+                    }
+
                     // Añadimos la canción a la cola
                     var url = URL_CANCIONES,
                         params = {
@@ -112,6 +126,54 @@ const onSeleccionable = selecionable => {
             })
         )
 }
+
+var Palabrotas = [
+    'joder',
+    'jodan',
+    'joda',
+    'gilipollas',
+    'ostia',
+    'hostia',
+    'cojones',
+    'coño',
+    'culo',
+    'ojete',
+    'folle',
+    'follen',
+    'follar',
+    'cagar',
+    'cago',
+    'caguen',
+    'cagüen',
+    'subnormal',
+    'pene',
+    'nepe',
+    'huevos',
+    'cojones',
+    'cojonudo',
+    'caraculo',
+    'ano',
+    'cabrón',
+    'puta',
+    'cabron',
+    'cabrones',
+    'polla',
+    'pollas',
+    'poya',
+    'poyas',
+    'mamar',
+    'mamóm',
+    'mamom',
+    'chupar',
+    'chupan',
+    'chupa'
+];
+
+const checkPalabrotas = (palabra) => {
+    var rgx = new RegExp('\\b(' + Palabrotas.join("|") + ')\\b', "gi");
+    return rgx.test(palabra);
+}
+
 
 var i = 0
 

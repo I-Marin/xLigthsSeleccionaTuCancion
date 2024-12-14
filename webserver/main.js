@@ -11,6 +11,7 @@ const {
     PLAYLIST_CANCIONES,
     PLAYLIST_ANIMACIONES,
     PLAYLIST_SIMON,
+    PLAYLIST_OTRAS,
     URL_GET_QUEUED_STEPS,
     URL_GET_PLAYING_STATUS,
     URL_CLEAR_BACKGROUND,
@@ -39,8 +40,27 @@ WEB_DATA.cancionesCola = []
 WEB_DATA.cancionesSeleccionables = []
 WEB_DATA.cancionesEnProceso = [] // Guarda las canciones pendientes de encolar. Para quitarlas de la lista de seleccionables mientras se procesan
 WEB_DATA.sonando = ''
+WEB_DATA.sonando_real = ''
 WEB_DATA.colaInterna = [] // Aqui se guardan las peticiones de las canciones y los simones dice con datos internos
 WEB_DATA.cancionesColaParaWeb = []
+
+WEB_DATA.secuenciaSimon = []
+WEB_DATA.secuenciaJugador = []
+WEB_DATA.colors = ['simon_dice_verde', 'simon_dice_rojo', 'simon_dice_amarillo', 'simon_dice_azul', 'simon_dice_ok', 'simon_dice_error']
+WEB_DATA.temporizadoresSimon = {}
+WEB_DATA.postSimonTimeout = {}
+WEB_DATA.simon_dice_status = 'sds_end'
+WEB_DATA.simon_dice_timeout = 5
+// sds_starting: Poniendo el inicio
+// sds_simon: simon esta ejecutando la secuencia
+// sds_player: Turno del jugador (botones habilitados)
+// sds_ok: Tocando secuencia de ok
+// sds_end: Partida terminada 
+WEB_DATA.simon_dice_record = {
+    jugador: undefined,
+    aciertos: undefined,
+    fecha: undefined
+}  // Se guarda el jugador y la puntuacion del record
 
 
 app.use(express.json())
@@ -71,15 +91,23 @@ app.get('/test_mode_off', (req, res) => {
 )
 
 app.get('/set_volume_to', (req, res) => {
-    let action3 = URL_SET_VOLUME(req.query.volumen)
+    setVolumen(req.query.volumen)
+})
+
+function setVolumen(volumen) {
+    let action3 = URL_SET_VOLUME(volumen)
     axios.post(action3)
-        .then(() => console.log('Volumen al ' + req.query.volumen + ': ' + action3))
-        .catch(e => res.status(500).json({ response: 'No se ha podido modificar volumen: ' + e }))
-    res.json({
-        volumen: req.query.volumen
-    })
+        .then(() => console.log('Volumen al ' + volumen + ': ' + action3))
 }
-)
+
+function setVolumenFueraDeHora(volumen) {
+    var now = new Date()
+    var desde = new Date()
+    desde.setHours(21, 30)
+    var hasta = new Date()
+    hasta.setHours(18, 30)
+    if (now > desde || now < hasta) { setVolumen(volumen) }
+}
 
 app.get('/stop_all', (req, res) => {
     axios.get(URL_STOP_ALL)
@@ -106,7 +134,7 @@ app.get('/canciones', (req, res) => {
             cancionesEnProceso: WEB_DATA.cancionesEnProceso,
             lengthms: WEB_DATA.lengthms,
             sonando: WEB_DATA.sonando,
-            progreso: WEB_DATA.progreso
+            progreso: WEB_DATA.progreso,
         }
     )
 
@@ -156,129 +184,142 @@ app.get('/canciones', (req, res) => {
         .catch(err => { })
 })
 
-WEB_DATA.secuenciaSimon = []
-WEB_DATA.secuenciaJugador = []
-WEB_DATA.colors = ['simon_dice_verde', 'simon_dice_rojo', 'simon_dice_amarillo', 'simon_dice_azul', 'simon_dice_ok', 'simon_dice_error']
-WEB_DATA.temporizadoresSimon = {}
-WEB_DATA.postSimonTimeout = {}
 
 // EJEMPLOS EN CARPETA DE EJEMPLOS
 app.get('/simon', (req, res) => {
-    var { jugador, nuevaPartida } = req.query
-    var partidaString = 'Simon dice ' + jugador
-    var index = WEB_DATA.cancionesCola.indexOf(partidaString) // Buscamos el index en el que esta el simon del usuario
+    try {
+        var { jugador, nuevaPartida } = req.query
+        var partidaString = 'Simon dice ' + jugador
+        var index = WEB_DATA.cancionesCola.indexOf(partidaString) // Buscamos el index en el que esta el simon del usuario
 
-    if (index !== -1 && nuevaPartida === "true") {
-        return res.status(500).json({ error: 'Ese nombre de jugador ya tiene una partida abierta, por favor seleccione otro nombre de usuario' })
+        if (index !== -1 && nuevaPartida === "true") {
+            return res.status(500).json({ error: 'Ese nombre de jugador ya tiene una partida abierta, por favor seleccione otro nombre de usuario' })
+        }
+
+        var responseJson = { record: WEB_DATA.simon_dice_record }
+
+        if (index === -1 && nuevaPartida === "true") { // No existe el simon en la cola, se crea
+            WEB_DATA.colaInterna.push(req)
+            WEB_DATA.cancionesCola.push(partidaString)
+            // Reiniciar o crear un nuevo temporizador para el ID
+            setSimonTimer(jugador, 5)
+            responseJson.status = 'inQueue'
+        } else if (index === -1 || WEB_DATA.postSimonTimeout[jugador]) {
+            delete WEB_DATA.postSimonTimeout[jugador]
+            responseJson.status = 'quit'
+        }
+        else if (index === 0 && (WEB_DATA.sonando.length == 0 || WEB_DATA.sonando == partidaString)) { // Si esta en primera posicion y no hay nada sonando
+            responseJson.status = 'running'
+        } else {
+            // Reiniciar o crear un nuevo temporizador para el ID
+            setSimonTimer(jugador, 5)
+            responseJson.status = 'inQueue'
+        }
+        responseJson.sds = WEB_DATA.simon_dice_status
+        return res.status(200).json(responseJson)
     }
-
-    if (index === -1 && nuevaPartida === "true") { // No existe el simon en la cola, se crea
-        WEB_DATA.colaInterna.push(req)
-        WEB_DATA.cancionesCola.push(partidaString)
-        // Reiniciar o crear un nuevo temporizador para el ID
-        setSimonTimer(jugador, 5)
-        return res.status(200).json({ status: 'inQueue' })
-    } else if (index === -1 || WEB_DATA.postSimonTimeout[jugador]) {
-        delete WEB_DATA.postSimonTimeout[jugador]
-        return res.status(200).json({ status: 'quit' })
+    catch (e) {
+        let txt = 'C:/xLights/Show2023/secuencias/simon_dice/simon_dice_logerror.txt'
+        let now = new Date();
+        fs.appendFileSync(txt, now + ' ' + e + ": " + e.message + '\n')
     }
-    else if (index === 0 && (WEB_DATA.sonando.length == 0 || WEB_DATA.sonando == partidaString)) { // Si esta en primera posicion y no hay nada sonando
-        return res.status(200).json({ status: 'running' })
-    } else {
-        // Reiniciar o crear un nuevo temporizador para el ID
-        setSimonTimer(jugador, 5)
-        return res.status(200).json({ status: 'inQueue' })
-    }
-
-
 })
 
-WEB_DATA.timeoutIncrement = 0
 app.post('/simon', async (req, res) => {
-    var { accion, color, jugador } = req.body
-    var colorIndexRandom = Math.floor(Math.random() * 3.999999); // random entre 0 y 3
-    var esSecuenciaCorrecta = true
-    let saveDirectory = 'C:/xLights/Show2023/secuencias/simon_dice/'
+    try {
+        var { accion, color, jugador } = req.body
+        var colorIndexRandom = Math.floor(Math.random() * 3.999999); // random entre 0 y 3
+        var esSecuenciaCorrecta = true
+        var secsTimeout = null
 
-    if (WEB_DATA.cancionesCola.indexOf("Simon dice " + jugador) !== 0) {
-        return
-    }
-
-    WEB_DATA.timeoutIncrement = 5
-    setSimonTimer(jugador, WEB_DATA.timeoutIncrement, true)
-
-    if (accion === 'start') { // Accion que llega cuando llega a la web de los controles del simon dice
-        // Si tiene un nombre váldio y no existe una partida con ese mismo nombre se añade la petición a la cola
-        WEB_DATA.secuenciaSimon = []
-        WEB_DATA.secuenciaJugador = []
-        WEB_DATA.secuenciaSimon.push(WEB_DATA.colors[colorIndexRandom])
-        console.log("[simon dice]: " + WEB_DATA.secuenciaSimon)
-        await encolarCancion('simon_dice_inicio', true)
-        // encolamos la primera
-        for (let i = 0; i < WEB_DATA.secuenciaSimon.length; i++) {
-            let cancion = WEB_DATA.secuenciaSimon[i] + '_' + (i + 1)
-            await encolarCancion(cancion, true)
-        }
-        setSimonTimer(jugador, 20, true)
-    } else if (accion === 'select') { // Se captura la secuencia y se compara con la que hace simon
-        WEB_DATA.secuenciaJugador.push(color)
-        for (let i = 0; i < WEB_DATA.secuenciaJugador.length; i++) {
-            if (WEB_DATA.secuenciaJugador[i] !== WEB_DATA.secuenciaSimon[i]) {
-                esSecuenciaCorrecta = false
-                break
-            }
+        if (WEB_DATA.cancionesCola.indexOf("Simon dice " + jugador) !== 0) {
+            return
         }
 
-        if (esSecuenciaCorrecta === false) {
+        if (accion === 'start') { // Accion que llega cuando llega a la web de los controles del simon dice
+            // Si tiene un nombre váldio y no existe una partida con ese mismo nombre se añade la petición a la cola
             WEB_DATA.secuenciaSimon = []
-            console.log("[simon dice] Secuencia fallada " + jugador)
+            WEB_DATA.secuenciaJugador = []
+            WEB_DATA.secuenciaSimon.push(WEB_DATA.colors[colorIndexRandom])
+            WEB_DATA.simon_dice_status = 'sds_starting'
+            //console.log("[simon dice]: " + WEB_DATA.secuenciaSimon)
+            await setVolumenFueraDeHora(5)
+            await encolarCancion('simon_dice_inicio', PLAYLIST_SIMON)
+            // encolamos la primera
+            for (let i = 0; i < WEB_DATA.secuenciaSimon.length; i++) {
+                let cancion = WEB_DATA.secuenciaSimon[i] + '_' + (i + 1)
+                await encolarCancion(cancion, PLAYLIST_SIMON)
+            }
+            //secsTimeout = WEB_DATA.secuenciaSimon.length * 0.6 * 1000 + 5
+            setSimonTimer(jugador, 20, true)
+            WEB_DATA.simon_dice_status = 'sds_player'
 
-            // Grabo el log de puntuacion
-            txt = saveDirectory + 'simon_dice.txt'
-            let now = new Date();
-            let logg = WEB_DATA.secuenciaJugador.length - 1
-            fs.appendFileSync(txt, now + ' ' + logg + ' aciertos ' + ' ' + jugador + '\n')
-
-            // TODO: Guardar record
-
-            setSimonTimer(jugador, 0, true)
-
-            // Se ejecuta secuencia de error
-            await encolarCancion('simon_dice_error', true)
-
-        } else {
-            console.log("[" + jugador + " dice]: " + WEB_DATA.secuenciaJugador)
-            // Se ejecuta el color seleccionado por el jugador
-            let cancionJ = color + '_' + (WEB_DATA.secuenciaJugador.length + 2)
-            await encolarCancion(cancionJ, true)
-
-            if (WEB_DATA.secuenciaJugador.length === WEB_DATA.secuenciaSimon.length) {
-                // Secuencia entera correcta
-                WEB_DATA.secuenciaJugador = []
-                WEB_DATA.secuenciaSimon.push(WEB_DATA.colors[colorIndexRandom])
-                console.log("[simon dice]: " + WEB_DATA.secuenciaSimon)
-                // Se ejecuta la secuencia de OK
-                await encolarCancion('simon_dice_ok', true)
-
-                // se ejecuta la secuencia de colores entera
-                for (let i = 0; i < WEB_DATA.secuenciaSimon.length; i++) {
-                    let cancion = WEB_DATA.secuenciaSimon[i] + '_' + (i + 1)
-                    await encolarCancion(cancion, true)
+        } else if (accion === 'select') { // Se captura la secuencia y se compara con la que hace simon
+            WEB_DATA.simon_dice_status = 'sds_player'
+            WEB_DATA.secuenciaJugador.push(color)
+            for (let i = 0; i < WEB_DATA.secuenciaJugador.length; i++) {
+                if (WEB_DATA.secuenciaJugador[i] !== WEB_DATA.secuenciaSimon[i]) {
+                    esSecuenciaCorrecta = false
+                    break
                 }
-                WEB_DATA.timeoutIncrement = 10 + 1 * (WEB_DATA.secuenciaSimon.length + 1)
-                setSimonTimer(jugador, WEB_DATA.timeoutIncrement, true)
-
-            } else { // Secuencia acertada pero no completa
-                // Esperando pulsacion del jugador
             }
 
+            let aciertos = WEB_DATA.secuenciaSimon.length
+
+            if (esSecuenciaCorrecta === false) {
+                WEB_DATA.simon_dice_status = 'sds_end'
+                setSimonTimer(jugador, 0, true)
+            } else {
+                //console.log("[" + jugador + " dice]: " + WEB_DATA.secuenciaJugador)
+                // Se ejecuta el color seleccionado por el jugador
+                WEB_DATA.simon_dice_status = 'sds_player_color_play'
+                setSimonTimer(jugador, WEB_DATA.simon_dice_timeout, true)
+                let cancionJ = color + '_' + (WEB_DATA.secuenciaJugador.length + 2)
+                await encolarCancion(cancionJ, PLAYLIST_SIMON)
+
+                if (WEB_DATA.secuenciaJugador.length === WEB_DATA.secuenciaSimon.length) {
+                    WEB_DATA.simon_dice_status = 'sds_ok'
+                    secsTimeout = WEB_DATA.secuenciaSimon.length * 0.6 * 1000
+                    // Se ejecuta la secuencia de OK
+                    await encolarCancion(`simon_dice_ok_${WEB_DATA.secuenciaSimon.length}`, PLAYLIST_SIMON)
+                    // Guardar record
+                    if (aciertos > WEB_DATA.simon_dice_record.aciertos) {
+                        WEB_DATA.simon_dice_record = {
+                            jugador: jugador,
+                            aciertos: aciertos,
+                            fecha: new Date()
+                        }
+                    }
+                    // Secuencia entera correcta
+                    WEB_DATA.secuenciaJugador = []
+                    WEB_DATA.secuenciaSimon.push(WEB_DATA.colors[colorIndexRandom])
+                    // console.log("[simon dice]: " + WEB_DATA.secuenciaSimon)
+                    WEB_DATA.simon_dice_status = 'sds_simon'
+                    // se ejecuta la secuencia de colores entera
+                    for (let i = 0; i < WEB_DATA.secuenciaSimon.length; i++) {
+                        let cancion = WEB_DATA.secuenciaSimon[i] + '_' + (i + 1)
+                        await encolarCancion(cancion, PLAYLIST_SIMON)
+                    }
+                    WEB_DATA.timeoutIncrement = 10 + 1 * (WEB_DATA.secuenciaSimon.length + 1)
+                    setSimonTimer(jugador, WEB_DATA.timeoutIncrement, true)
+
+                } else { // Secuencia acertada pero no completa
+                    // Esperando pulsacion del jugador
+                    WEB_DATA.simon_dice_status = 'sds_player'
+                }
+
+            }
+        } else {
+            esSecuenciaCorrecta = false
         }
-    } else {
-        esSecuenciaCorrecta = false
+
+        return res.status(200).json({ esSecuenciaCorrecta: esSecuenciaCorrecta, cantidadColores: WEB_DATA.secuenciaSimon.length, timeout: secsTimeout })
     }
-
-
-    return res.status(200).json({ esSecuenciaCorrecta: esSecuenciaCorrecta, cantidadColores: WEB_DATA.secuenciaSimon.length })
+    catch (e) {
+        let txt = 'C:/xLights/Show2023/secuencias/simon_dice/simon_dice_logerror.txt'
+        let now = new Date();
+        fs.appendFileSync(txt, now + ' ' + e + '\n')
+    }
 })
 
 
@@ -290,14 +331,26 @@ function setSimonTimer(jugador, segundos, post) {
 
         WEB_DATA.colaInterna = WEB_DATA.colaInterna.filter(elem => elem.query.jugador !== jugador) // Eliminamos al jugador porque se ha desconectado
         WEB_DATA.cancionesCola = WEB_DATA.cancionesCola.filter(elem => elem !== 'Simon dice ' + jugador)
-        if (post) {
+        if (post) { // Se termina una partida del simon
+
+            console.log("[simon dice] Secuencia fallada " + jugador)
+
+            // Grabo el log de puntuacion
+            let aciertos = WEB_DATA.secuenciaSimon.length - 1
+            let txt = 'C:/xLights/Show2023/secuencias/simon_dice/simon_dice.txt'
+            let now = new Date();
+            fs.appendFileSync(txt, now + ' ' + aciertos + ' aciertos ' + ' ' + jugador + '\n')
+
             WEB_DATA.postSimonTimeout[jugador] = true
             WEB_DATA.secuenciaSimon = []
+
+            // Se ejecuta secuencia de error
+            encolarCancion('simon_dice_error', PLAYLIST_SIMON)
         }
         WEB_DATA.timeoutIncrement = 0
         delete WEB_DATA.temporizadoresSimon[jugador]
 
-        //TODO: Encolar todas las peticiones hasta el siguiente simon dice
+        //Encolar todas las peticiones hasta el siguiente simon dice
         let reqEncolar
         while (WEB_DATA.colaInterna.length > 0 && WEB_DATA.colaInterna[0].body.cancion) {
             reqEncolar = WEB_DATA.colaInterna.shift()
@@ -329,7 +382,11 @@ app.post('/canciones', (req, res) => {
         return
     }
 
-    encolarCancionDedicatoriaPost(req)
+    if (cancion == 'Cumpleaños Feliz') {
+        encolarCancionFelizCumplePost(req)
+    } else if (cancion == 'Mensaje del dia') {
+        encolarCancionMensajeDelDiaPost(req)
+    } else { encolarCancionDedicatoriaPost(req) }
 })
 
 function encolarCancionDedicatoriaPost(req) {
@@ -391,36 +448,36 @@ function encolarCancionDedicatoriaPost(req) {
                                                         console.log('Dedicatoria añadida: ' + dedicatoria)
                                                         WEB_DATA.cancionesCola.push(cancion)
                                                         WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
-                                                        encolarCancion(cancion)
+                                                        encolarCancion(cancion, PLAYLIST_CANCIONES)
                                                     }) //then5
                                                     .catch(e => {
                                                         console.log('No se ha podido añadir la secuencia\n' + ':\n ' + e)
                                                         WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
-                                                        encolarCancion(cancion)
+                                                        encolarCancion(cancion, PLAYLIST_CANCIONES)
                                                     }) //catch5
                                             }) //then4
                                             .catch(e => {
                                                 console.log('Error ' + action4 + ':\n ' + e + '\n\n')
                                                 WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
-                                                encolarCancion(cancion)
+                                                encolarCancion(cancion, PLAYLIST_CANCIONES)
                                             }) //catch4
                                     }) //then3
                                     .catch(e => {
                                         console.log('Error ' + action3 + ':\n ' + e + '\n\n')
                                         WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
-                                        encolarCancion(cancion)
+                                        encolarCancion(cancion, PLAYLIST_CANCIONES)
                                     }) //catch3
                             }) //then2
                             .catch(e => {
                                 console.log('Error ' + action2 + ':\n ' + e + '\n\n')
                                 WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
-                                encolarCancion(cancion)
+                                encolarCancion(cancion, PLAYLIST_CANCIONES)
                             }) //catch2
                     }) //then1
                     .catch(e => {
                         console.log('Error ' + action1 + ':\n ' + e + '\n\n')
                         WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
-                        encolarCancion(cancion)
+                        encolarCancion(cancion, PLAYLIST_CANCIONES)
                     }) //catch1
             }); // gTTS de la dedicatoria
 
@@ -434,18 +491,190 @@ function encolarCancionDedicatoriaPost(req) {
 
     } else { // No hay dedicatoria
         WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
-        encolarCancion(cancion)
+        encolarCancion(cancion, PLAYLIST_CANCIONES)
     }
 }
 
-async function encolarCancion(cancion, esSimon) {
-    var playlist = !esSimon ? PLAYLIST_CANCIONES : PLAYLIST_SIMON
+function encolarCancionFelizCumplePost(req) {
+    let body = req.body
+    let cancion = body.cancion
+
+    if (!WEB_DATA.canciones.includes(cancion))
+        return res.status(500).json({ response: 'La canción no se encuentra en la playlist' })
+
+    WEB_DATA.cancionesEnProceso.push(cancion)
+
+    let dedicatoria = body.dedicatoria != '' ? body.dedicatoria : undefined,
+        saveDirectory = 'C:/xLights/Show2023/secuencias/',
+        fileName
+    // Guardo el historico de canciones
+    txt = saveDirectory + 'canciones.txt'
+    let now = new Date();
+    fs.appendFileSync(txt, now + ' ' + cancion + '\n')
+
+    if (dedicatoria) {
+
+        fileName = `Happy Birthday`
+        let seq = 'secuencias/' + fileName + '.xsq'
+        let txt = saveDirectory + fileName + '.txt'
+        console.log('Cumpleaños Feliz: ' + dedicatoria + '\nARCHIVO: ' + fileName + '\n')
+
+        fs.writeFileSync(txt, dedicatoria.toUpperCase())
+        // Guardo el historico de dedicatorias
+        txt = saveDirectory + 'dedicatorias.txt'
+        let now = new Date();
+        fs.appendFileSync(txt, now + ' (Cumpleaños Feliz) ' + dedicatoria + '\n')
+
+
+        // Abro la secuencia
+        err = ''
+        let action1 = URL_XLIGTHS_COMMAND('openSequence' + '?force=False&seq=' + seq)
+        axios.get(action1)
+            .then(() => {
+                // Renderizo
+                let action2 = URL_XLIGTHS_COMMAND('renderAll')
+                axios.get(action2)
+                    .then(() => {
+                        // Guardo la secuencia
+                        let action3 = URL_XLIGTHS_COMMAND('saveSequence')
+                        axios.get(action3)
+                            .then(() => {
+                                let action4 = URL_XLIGTHS_COMMAND('closeSequence')
+                                axios.get(action4)
+                                    .then(() => {
+                                        WEB_DATA.cancionesCola.push(cancion)
+                                        WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
+                                        encolarCancion(cancion, PLAYLIST_CANCIONES)
+                                    })//then 4
+                                    .catch(e => {
+                                        console.log('Error ' + action4 + ':\n ' + e + '\n\n')
+                                        WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
+                                        encolarCancion(cancion, PLAYLIST_CANCIONES)
+                                    }) //catch4
+                            }) //then3
+                            .catch(e => {
+                                console.log('Error ' + action3 + ':\n ' + e + '\n\n')
+                                WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
+                                encolarCancion(cancion, PLAYLIST_CANCIONES)
+                            }) //catch3
+                    }) //then2
+                    .catch(e => {
+                        console.log('Error ' + action2 + ':\n ' + e + '\n\n')
+                        WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
+                        encolarCancion(cancion, PLAYLIST_CANCIONES)
+                    }) //catch2
+            }) //then1
+            .catch(e => {
+                console.log('Error ' + action1 + ':\n ' + e + '\n\n')
+                WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
+                encolarCancion(cancion, PLAYLIST_CANCIONES)
+            }) //catch1
+
+
+        // var waitTill = new Date(new Date().getTime() + 1 * 1000);
+        // // while (waitTill > new Date()) { }
+        // // console.log('Waited 1 s')
+
+    } else { // No hay dedicatoria
+        WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
+        encolarCancion(cancion, PLAYLIST_CANCIONES)
+    }
+}
+
+function encolarCancionMensajeDelDiaPost(req) {
+    let body = req.body
+    let cancion = body.cancion
+
+    WEB_DATA.cancionesEnProceso.push(cancion)
+
+    let dedicatoria = body.dedicatoria != '' ? body.dedicatoria : undefined,
+        saveDirectory = 'C:/xLights/Show2023/secuencias/',
+        fileName
+    // Guardo el historico de canciones
+    txt = saveDirectory + 'Mensaje del dia.txt'
+    let now = new Date();
+    fs.appendFileSync(txt, now + ' ' + cancion + '\n')
+
+    if (dedicatoria) {
+
+        fileName = `Mensaje del dia`
+        let seq = 'secuencias/' + fileName + '.xsq'
+        let txt = saveDirectory + fileName + '.txt'
+        console.log('Mensaje del dia: ' + dedicatoria + '\nARCHIVO: ' + fileName + '\n')
+
+        fs.writeFileSync(txt, dedicatoria.toUpperCase())
+        // Guardo el historico de dedicatorias
+        txt = saveDirectory + 'dedicatorias.txt'
+        let now = new Date();
+        fs.appendFileSync(txt, now + ' (Mensaje del dia) ' + dedicatoria + '\n')
+
+
+        // Abro la secuencia
+        err = ''
+        let action1 = URL_XLIGTHS_COMMAND('openSequence' + '?force=False&seq=' + seq)
+        axios.get(action1)
+            .then(() => {
+                // Renderizo
+                let action2 = URL_XLIGTHS_COMMAND('renderAll')
+                axios.get(action2)
+                    .then(() => {
+                        // Guardo la secuencia
+                        let action3 = URL_XLIGTHS_COMMAND('saveSequence')
+                        axios.get(action3)
+                            .then(() => {
+                                let action4 = URL_XLIGTHS_COMMAND('closeSequence')
+                                axios.get(action4)
+                                    .then(() => {
+                                        WEB_DATA.cancionesCola.push(cancion)
+                                        WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
+                                        encolarCancion(cancion, PLAYLIST_OTRAS)
+                                    })//then 4
+                                    .catch(e => {
+                                        console.log('Error ' + action4 + ':\n ' + e + '\n\n')
+                                        WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
+                                        encolarCancion(cancion, PLAYLIST_OTRAS)
+                                    }) //catch4
+                            }) //then3
+                            .catch(e => {
+                                console.log('Error ' + action3 + ':\n ' + e + '\n\n')
+                                WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
+                                encolarCancion(cancion, PLAYLIST_OTRAS)
+                            }) //catch3
+                    }) //then2
+                    .catch(e => {
+                        console.log('Error ' + action2 + ':\n ' + e + '\n\n')
+                        WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
+                        encolarCancion(cancion, PLAYLIST_OTRAS)
+                    }) //catch2
+            }) //then1
+            .catch(e => {
+                console.log('Error ' + action1 + ':\n ' + e + '\n\n')
+                WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
+                encolarCancion(cancion, PLAYLIST_OTRAS)
+            }) //catch1
+
+
+        // var waitTill = new Date(new Date().getTime() + 1 * 1000);
+        // // while (waitTill > new Date()) { }
+        // // console.log('Waited 1 s')
+
+    } else { // No hay dedicatoria
+        WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
+        encolarCancion(cancion, PLAYLIST_OTRAS)
+    }
+}
+
+
+
+async function encolarCancion(cancion, playlist) {
+    if (!playlist) { playlist = PLAYLIST_CANCIONES }
+    // var playlist = !esSimon ? PLAYLIST_CANCIONES : PLAYLIST_SIMON
     try {
         // WEB_DATA.cancionesEnProceso = [] //WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
 
         let action1 = URL_ENQUEUE_SONG(cancion, playlist)
         await axios.post(action1)
-        if (esSimon != true) {
+        if (playlist != PLAYLIST_SIMON) {
             console.log('Canción añadida a la cola: ' + cancion)
         }
         // // Paro el background
@@ -463,6 +692,34 @@ async function encolarCancion(cancion, esSimon) {
         console.log('Error encolando cancion : ' + error);
     }
 
+}
+
+async function encolarCancionYEsperar(cancion, playlist) {
+    await encolarCancion(cancion, playlist)
+    while (WEB_DATA.sonando_real != cancion) {
+        await axios.get(URL_GET_PLAYING_STATUS)
+            .then(resData2 => {
+                if (resData2.data.status == 'idle') {
+                    WEB_DATA.sonando_real = ''
+                }
+                else {
+                    WEB_DATA.sonando_real = resData2.data.step
+                }
+            })
+            .catch(err => { console.log(err) })
+    }
+    while (WEB_DATA.sonando_real === cancion || WEB_DATA.cancionesCola.indexOf(cancion) != -1) {
+        await axios.get(URL_GET_PLAYING_STATUS)
+            .then(resData2 => {
+                if (resData2.data.status == 'idle') {
+                    WEB_DATA.sonando_real = ''
+                }
+                else {
+                    WEB_DATA.sonando_real = resData2.data.step
+                }
+            })
+            .catch(err => { console.log(err) })
+    }
 }
 
 app.get('/renderall', (req, res) => {
@@ -544,8 +801,6 @@ app.post('/comentarios', (req, res) => {
 // Temporizador para poner ANIMACIONES
 function startBackground() {
     //console.log('Background timer')
-
-
     // Busco el estado del Scheduler
     axios.get(URL_GET_PLAYING_STATUS)
         .then(resData => {
@@ -562,9 +817,23 @@ function startBackground() {
 
 }
 
+// Temporizador para poner Agradecimientos
+function startAgradecimientos() {
+    //console.log('Background timer')
+
+    if (WEB_DATA.secuenciaSimon.length > 0) { return }
+
+    // Pongo los agradecimientos con volumen 0 cuando estamos fuera de horario
+    setVolumenFueraDeHora(0)
+    encolarCancion('Inicio Show', PLAYLIST_OTRAS)
+    encolarCancion('Agradecimientos', PLAYLIST_OTRAS)
+    encolarCancion('Mensaje del dia', PLAYLIST_OTRAS)
+}
+
+
 
 // Temporizador para ver cancion sonando, y modificar colas
-function procesaColas() {
+async function procesaColas() {
 
     axios.get(URL_GET_QUEUED_STEPS)
         .then(resData => {
@@ -578,11 +847,11 @@ function procesaColas() {
                         WEB_DATA.sonando = '    ' + resData2.data.step + ' ' + resData2.data.left.substring(0, resData2.data.left.indexOf('.', 0))
                         WEB_DATA.progreso = ~~(resData2.data.positionms / resData2.data.lengthms * 100)
                     }
+                    WEB_DATA.sonando_real = WEB_DATA.sonando
                     if (WEB_DATA.sonando.includes('simon_dice_')) {
                         WEB_DATA.sonando = ''
                         WEB_DATA.progreso = 0
                     }
-
 
                     WEB_DATA.lengthms = 0
                     resData.data.steps.forEach(element => {
@@ -596,6 +865,7 @@ function procesaColas() {
 
                     WEB_DATA.cancionesColaParaWeb = Array.from(WEB_DATA.cancionesCola)
                     if (WEB_DATA.cancionesCola.length > 0) {
+
                         if (WEB_DATA.cancionesCola[0].includes("Simon dice ") && WEB_DATA.sonando == '') {
                             // Hay un simon dice jugando
                             WEB_DATA.sonando = WEB_DATA.cancionesCola[0]
@@ -710,6 +980,58 @@ function mapListByParam(list, params) {
         .catch(err => { })
 }, 1000)*/
 
+function LeeRecordSimonDice() {
+    const fs = require('fs');
+
+    // Ruta del archivo de texto
+    const filePath = 'C:/xLights/Show2023/secuencias/simon_dice/simon_dice.txt';
+
+    // Lee el archivo de texto
+    fs.readFile(filePath, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error al leer el archivo:', err);
+            return;
+        }
+
+        // Divide el contenido del archivo por líneas
+        const lines = data.trim().split('\n');
+
+        let maxAciertos = 0; // Valor inicial para encontrar el máximo
+        let jugador = ''
+        let fecha = ''
+
+
+        // Itera sobre cada línea del archivo
+        lines.forEach(line => {
+            // Busca el número antes de 'aciertos' en la línea usando la expresión regular
+            const logg = line.substring(68, 70);
+            const aciertos = parseInt(logg);
+
+            // console.log(`[leeRecordSimonDice]: Linea ${line} - Aciertos ${aciertos}`)
+
+            // Comprueba si el valor actual de logg es mayor que el máximo encontrado hasta ahora
+            if (!isNaN(aciertos) && aciertos > maxAciertos) {
+                maxAciertos = aciertos;
+                const startIndex = line.indexOf("aciertos  ");
+                jugador = line.substring(startIndex + "aciertos  ".length).trim();
+                fecha = line.substring(0, 25).trim();
+            }
+        });
+
+        if (maxAciertos === 0) {
+            console.log('[leeRecordSimonDice]: No se encontró ningún valor de log en el archivo.');
+        } else {
+            console.log('[leeRecordSimonDice]: El record de Simon Dice es:', maxAciertos, 'y fue', jugador);
+            WEB_DATA.simon_dice_record = {
+                jugador: jugador,
+                aciertos: maxAciertos,
+                fecha: fecha
+            }
+        }
+    });
+
+}
+
 app.listen(port, () => {
     axios.get(URL_GET_PLAYLIST_STEPS)
         .then(res => WEB_DATA.canciones = res.data.steps.map(step => step.name))
@@ -717,7 +1039,9 @@ app.listen(port, () => {
     console.log(`Marin Falcon app listening on http://${BASE_URL(port)}`)
     console.log(`Página de canciones: http://${BASE_URL()}/xScheduleWeb/index.html`)
     console.log(`Página de comentarios: http://${BASE_URL()}/xScheduleWeb/comentarios.html`)
+    LeeRecordSimonDice()
 
-    setInterval(startBackground, 5000, 'funky');
-    setInterval(procesaColas, 500, 'funky2');
+    setInterval(startBackground, 5000);
+    setInterval(startAgradecimientos, 30 * 60 * 1000);
+    setInterval(procesaColas, 500);
 })
