@@ -23,7 +23,7 @@ body{
   position: fixed;
   z-index: 5;
 }
-}
+
 .navbar-default .navbar-brand {
   color: #ecf0f1;
 }
@@ -312,3 +312,4 @@ table-layout: fixed;
 .btn-filled-amber:hover {
     background-color: #b09a64;
 }
+

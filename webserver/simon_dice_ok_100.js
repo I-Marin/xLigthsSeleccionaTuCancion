@@ -6,7 +6,7 @@ const {
 } = require('./constants');
 
 
-let saveDirectory = 'C:/xLights/Show2023/secuencias/simon_dice/',
+let saveDirectory = 'C:/xLights/Show2024/secuencias/simon_dice/',
     fileName
 
 

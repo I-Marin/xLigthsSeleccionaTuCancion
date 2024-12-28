@@ -10,6 +10,89 @@ const SONGS_CONT = document.getElementById('canciones')
 const PLAYING_CONT = document.getElementById('sonando')
 const QUEUE_CONT = document.getElementById('cola')
 
+const dialog = document.getElementById('customDialog')
+const openDialogBtn = document.getElementById('openDialogBtn')
+const closeDialogBtn = document.getElementById('closeDialogBtn')
+const fileInput = document.getElementById('fileInput')
+const cameraPreview = document.getElementById('cameraPreview')
+const textInput = document.getElementById('textInput')
+const submitBtn = document.getElementById('submitBtn')
+
+// Función para abrir el modal y desactivar el scroll
+openDialogBtn.addEventListener('click', () => {
+    dialog.showModal();
+    document.body.classList.add('no-scroll');// Desactiva el scroll
+})
+
+// Función para cerrar el modal y reactivar el scroll
+closeDialogBtn.addEventListener('click', closeDialog);
+dialog.addEventListener('click', (e) => {
+    if (e.target === dialog) {
+        closeDialog();
+    }
+});
+
+// Cerrar el modal al hacer clic fuera del contenido
+dialog.addEventListener('click', (e) => {
+    if (e.target === dialog) {
+        closeDialog();
+    }
+})
+
+// Mostrar vista previa de la imagen seleccionada
+fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0]
+    if (file) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+            cameraPreview.src = e.target.result
+            cameraPreview.style.display = 'block' 
+        }
+        reader.readAsDataURL(file)
+    }
+})
+
+// Evento de enviar (simple alerta por ahora)
+submitBtn.addEventListener('click', () => {
+    alert('¡Mensaje enviado!')
+    // Añadimos la canción a la cola
+    var url = URL_CANCIONES,
+    params = {
+        method: 'POST',
+        mode: 'cors',
+        body: JSON.stringify({
+            cancion: "Noche de paz",
+            dedicatoria: textInput.value,
+            imagen: cameraPreview.src
+        }),
+        headers: { 'Content-Type': 'application/json' },
+    }
+
+    var request = new Request(url, params)
+    var resp_aux
+
+    fetch(request)
+        .then(res => resp_aux = res.clone())
+        .then(res => res.json())
+        .then(res => {
+            console.log('Cancion puesta a la cola')
+        })
+        .catch(err => console.log(err))
+
+    closeDialog()
+    document.body.classList.remove('no-scroll')
+})
+
+
+// Función para cerrar el modal
+function closeDialog() {
+    dialog.close();
+    document.body.classList.remove('no-scroll'); // Reactiva el scroll
+    cameraPreview.style.display = 'none'
+    fileInput.value = ""
+    textInput.value = ""
+}
+
 /* ******************************
     * DIV CANCIÓN SONANDO: '<div class="card p-2 m-2">' + name + '</div>'
     * DIV CANCIÓN SELECCIONABLE: '<div class="card p-2 m-2 seleccionable" onCLick="onSeleccionable(this)">' + name + '</div>'
@@ -70,22 +153,22 @@ const onSeleccionable = selecionable => {
     fetch(URL_CANCIONES)
         .then(response => response.json()
             .then(data => {
-
+                
                 if (selecionable.textContent != 'Mensaje del dia') {
                     if (data.cancionesCola.length >= 5)
-                        return alert("Muchas canciones en cola, espera a que acabe una y podrás seleccionar la tuya ;)")
+                        return alert("Muchas canciones en cola, espera a que acabe una y podrás seleccionar la tuya )")
                     if (data.lengthms >= 8 * 60 * 1000)
-                        return alert("Mucho tiempo de canciones en cola, espera a que acabe una y podrás seleccionar la tuya ;)")
+                        return alert("Mucho tiempo de canciones en cola, espera a que acabe una y podrás seleccionar la tuya )")
 
                     let ahora = new Date()
                     if (ahora.getHours() < 18 || (ahora.getHours() == 18 && ahora.getMinutes() < 30) || (ahora.getHours() == 21 && ahora.getMinutes() > 30) || ahora.getHours() >= 22) {
-                        var passw = prompt('Por el bienestar de nuestros vecinos, canciones solo de 18:30 a 21:30, ¡Vente entre esas horas y disfruta del espectáculo! ;)')
+                        var passw = prompt('Por el bienestar de nuestros vecinos, canciones solo de 18:30 a 21:30, ¡Vente entre esas horas y disfruta del espectáculo! )')
                         if (passw != '131313')
                             return
                     }
                 }
 
-                let texto = '¡¡Es tu oportunidad!! \nPuedes escribir una dedicatoria para que suene antes de la canción:\n\n' + selecionable.textContent + '\n\n (Si eres vergonzoso, no te preocupes deja el campo en blanco y no sonará nada ;)'
+                let texto = '¡¡Es tu oportunidad!! \nPuedes escribir una dedicatoria para que suene antes de la canción:\n\n' + selecionable.textContent + '\n\n (Si eres vergonzoso, no te preocupes deja el campo en blanco y no sonará nada)'
                 if (selecionable.textContent == 'Cumpleaños Feliz')
                     texto = 'Nombre de la persona que cumple años'
                 if (selecionable.textContent == 'Mensaje del dia')
@@ -96,7 +179,7 @@ const onSeleccionable = selecionable => {
 
                 if (dedicatoria != undefined) {
                     if (checkPalabrotas(dedicatoria) == true) {
-                        return alert('Por favor no utilice lenguaje soez');
+                        return alert('Mensaje no adecuado')
                     }
 
                     // Añadimos la canción a la cola
@@ -119,6 +202,10 @@ const onSeleccionable = selecionable => {
                         .then(res => res.json())
                         .then(res => {
                             console.log('Cancion puesta a la cola')
+                            if (res.success === false){
+                                alert (res.message)
+
+                                }
                         })
                         .catch(err => console.log(err))
                 }
@@ -154,7 +241,9 @@ var Palabrotas = [
     'caraculo',
     'ano',
     'cabrón',
+    'cabron',
     'puta',
+    'puto',
     'cabron',
     'cabrones',
     'polla',
@@ -162,16 +251,19 @@ var Palabrotas = [
     'poya',
     'poyas',
     'mamar',
+    'mamada',
     'mamóm',
     'mamom',
     'chupar',
     'chupan',
+    'timbre',
+    'moro',
     'chupa'
-];
+]
 
 const checkPalabrotas = (palabra) => {
-    var rgx = new RegExp('\\b(' + Palabrotas.join("|") + ')\\b', "gi");
-    return rgx.test(palabra);
+    var rgx = new RegExp('\\b(' + Palabrotas.join("|") + ')\\b', "gi")
+    return rgx.test(palabra)
 }
 
 
@@ -189,21 +281,22 @@ const getPlayList = () => {
         .then(response => response.json())
         .then(data => {
             let cancionesCola = data.cancionesCola,
-                cancionesSinReproducir = data.cancionesSinReproducir
+                cancionesSinReproducir = data.cancionesSinReproducir,
+                sonando = data.sonando
 
             document.getElementById('cancion_sonando_span').innerHTML = data.sonando
             if (data.sonando == '') {
-                PLAYING_CONT.style = 'display:none;'
+                PLAYING_CONT.style = 'display:none'
             }
             else
                 PLAYING_CONT.style = ''
             // Añadimos el progreso
             try {
                 barraProgreso = document.getElementById('barra-progreso')
-                const porcentaje = `${data.progreso}%`;
-                barraProgreso.style.width = porcentaje;
-                const cantidadProgreso = document.getElementById('cantidad-progreso');
-                cantidadProgreso.innerHTML = data.progreso;
+                const porcentaje = `${data.progreso}%`
+                barraProgreso.style.width = porcentaje
+                const cantidadProgreso = document.getElementById('cantidad-progreso')
+                cantidadProgreso.innerHTML = data.progreso
             } catch { }
 
             //Añadimos canciones a la cola
@@ -211,7 +304,7 @@ const getPlayList = () => {
                 .filter(cancion => !songsQueue.includes(cancion))
                 .forEach(cancion => appendSongToDiv(QUEUE_CONT, cancion, true))
             if (cancionesCola.length == 0) {
-                QUEUE_CONT.style = 'display:none;'
+                QUEUE_CONT.style = 'display:none'
             }
             else
                 QUEUE_CONT.style = ''
@@ -229,6 +322,7 @@ const getPlayList = () => {
             //Eliminamos canciones de las canciones sin reproducir
             divsSongsWaiting
                 .filter(cancion => !cancionesSinReproducir.includes(cancion.innerHTML))
+                .filter(cancion => !sonando.includes(cancion.innerHTML))
                 .forEach(cancion => cancion.remove())
         })
         .catch(error => {
@@ -238,18 +332,20 @@ const getPlayList = () => {
     // console.log(i++)
 
     // Oculto o muestro las capas de control con el parametro args=admin
-    var url = document.URL;
+    var url = document.URL
 
     //if (url.includes('admin')) {
     //    document.getElementById('control').style = ''
     //    document.getElementById('volumen').style = ''
     //}
     //else {
-    //    document.getElementById('control').style = 'display:none;'
-    //    document.getElementById('volumen').style = 'display:none;'
+    //    document.getElementById('control').style = 'display:none'
+    //    document.getElementById('volumen').style = 'display:none'
     //}
 
 }
+
+
 
 getPlayList()
 setInterval(getPlayList, 1000)

@@ -11,15 +11,20 @@ const constants = {
     URL_SET_BACKGROUND: playlist => `http://${BASE_URL()}/xScheduleCommand?Command=Set playlist as background&Parameters=${playlist}`,
     URL_ENQUEUE_SONG: (songName, playlist) => `http://${BASE_URL()}/xScheduleCommand?Command=Enqueue playlist step&Parameters=${playlist},${songName}`,
     URL_STOP_ANIMATIONS: playlist => `http://${BASE_URL()}/xScheduleCommand?Command=Stop specified playlist&Parameters=${playlist}`,
-    URL_XLIGTHS_COMMAND: command => `http://${BASE_URL("49913")}/${command}`,
+    URL_XLIGTHS_COMMAND: command => `http://localhost:49913/${command}`,
     URL_SET_VOLUME: volumen => `http://${BASE_URL()}/xScheduleCommand?Command=Set volume to&Parameters=${volumen}`,
     URL_SET_TEST_MODE_ON: `http://${BASE_URL()}/xScheduleCommand?Command=Start test mode&Parameters=Test`,
     URL_SET_TEST_MODE_OFF: `http://${BASE_URL()}/xScheduleCommand?Command=Stop test mode`,
     URL_STOP_ALL: `http://${BASE_URL()}/xScheduleCommand?Command=Stop all now`,
     URL_SIGUIENTE: `http://${BASE_URL()}/xScheduleCommand?Command=Next step in current playlist`,
-    FILE_COMENTARIOS: `C:/xLights/Show2023/secuencias/comentarios.txt`,
+    SHOW_PATH: `C:/xLights/Show2024`,
     SEPARADOR: `;\n`,
 }
 constants.URL_GET_PLAYLIST_STEPS = `http://${BASE_URL()}/xScheduleQuery?Query=GetPlayListSteps&Parameters=${constants.PLAYLIST_CANCIONES}`
+constants.FILE_COMENTARIOS = `${constants.SHOW_PATH}/secuencias/comentarios.txt`
+constants.FILE_ANIMACION_BTC = `${constants.SHOW_PATH}/secuencias/AnimacionBTC.txt`
+constants.SIMON_SAYS_PATH = `${constants.SHOW_PATH}/secuencias/simon_dice`
+constants.SIMON_SAYS_TXT = `${constants.SIMON_SAYS_PATH}/simon_dice.txt`
+constants.SIMON_SAYS_ERROR_TXT = `${constants.SIMON_SAYS_PATH}/simon_dice_logerror.txt`
 
 module.exports = constants

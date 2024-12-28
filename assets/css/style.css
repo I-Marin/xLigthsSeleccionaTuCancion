@@ -312,3 +312,10 @@ table-layout: fixed;
 .btn-filled-amber:hover {
     background-color: #b09a64;
 }
+hr.line-style {
+  border: none; /* Elimina los bordes predeterminados */
+  height: 100px;  /* Grosor de la línea */
+  border-top: 2px solid #000; /* Establece un borde superior con el grosor deseado */
+  background-color: #f7d88b; /* Color de la línea */
+  margin: 40px 0; /* Espaciado arriba y abajo */
+}

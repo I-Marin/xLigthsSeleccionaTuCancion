@@ -30,7 +30,9 @@ rem start "serverInit.exe" "C:/Program Files/xLights/xScheduleWeb/serverInit.bat
 rem mato antes la ventana (habia veces que el puerto daba cerrado pero la ventana seguia abierta y al arrancar daba puerto ocupado)
 taskkill /t /f /fi "imagename eq cmd.exe" /fi "windowtitle eq c:\windows\system32\cmd.exe"
 rem start "Node" cmd node webserver/main.js
-start cmd /c node webserver/main.js
+rem start cmd /c node webserver/main.js
+rem node webserver/main.js > c:\xLights\webserver_log.txt
+start arrancaWebserver.bat
 
 :end
 timeout 5

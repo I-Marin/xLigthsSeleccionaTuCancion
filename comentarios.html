@@ -154,6 +154,37 @@
       color: orange;
     }
   </style>
+    <script>
+      async function enviarComentario(event) {
+        event.preventDefault(); // Evita el envío tradicional
+
+        const formData = new FormData(event.target); // Captura todos los campos del formulario
+        const comentarioData = Object.fromEntries(formData); // Convierte los datos del formulario en un objeto
+
+        try {
+          const response = await fetch('http://micasasevedelejos.tudelanicos.com:3000/comentarios', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(comentarioData), // Envía todos los campos
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            alert(data.message); // Mensaje de éxito
+          } else {
+            alert(data.message); // Mensaje de error
+          }
+          // Refresca la página
+          location.reload();
+        } catch (error) {
+          alert('Hubo un error al enviar tu comentario. Por favor, inténtalo de nuevo más tarde.');
+          console.error('Error:', error);
+        }
+      }
+    </script>
 
 </head>
 
@@ -171,7 +202,7 @@
         ánimos, palabras de agradecimientos ....lo que quieras</h3>
       <h3 class="mb-3 text-white">¡¡¡ Los leemos todos !!! </h3>
 
-      <form action="http://micasasevedelejos.tudelanicos.com:3000/comentarios" method="post" id="formComentarios">
+      <form onsubmit="enviarComentario(event)" id="formComentarios">
         <input type="text" name="nombre" placeholder="Nombre (si eres timido invéntatelo)" required>
         <textarea name="comentario" cols="30" rows="5" placeholder="Introduce tu comentario" required></textarea>
 
