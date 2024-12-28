@@ -1,7 +1,7 @@
 const fs = require('fs');
 
 // Ruta del archivo de texto
-const filePath = 'C:/xLights/Show2023/secuencias/simon_dice/simon_dice.txt';
+const filePath = 'C:/xLights/Show2024/secuencias/simon_dice/simon_dice.txt';
 
 
 // Lee el archivo de texto
@@ -40,6 +40,6 @@ fs.readFile(filePath, 'utf8', (err, data) => {
     if (recordMax === 0) {
         console.log('No se encontró ningún valor de logg en el archivo.');
     } else {
-        console.log('El mayor valor de logg encontrado es:', recordMax, 'y fue', jugador);
+        console.log('El mayor valor de log encontrado es:', recordMax, 'y fue', jugador);
     }
 });

@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="viewport" content="width=device-width, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
   <link href="css/bootstrap.min.css" rel="stylesheet">
   <link href="css/style.css" rel="stylesheet">
   <title>Elige tu canción</title>
@@ -13,14 +13,30 @@
   <link rel="stylesheet" href="assets/css/main.css">
   <link rel="stylesheet" href="assets/css/snowflakes.style.css">
 
+  <script defer src="assets/js/baseUrl.js"></script>
+  <script defer src="assets/js/main.js"></script>
 </head>
 
 <body class="">
   <div class="container p-3">
-    <h1 class="mb-5 text-white titulo">MiCasaSeVeDeLejos</h1>
-    <h3 class="titulo">Deja tu comentario <a href="comentarios.html">aqui</a></h3>
+    <h1 class="mb-5 titulo">MiCasaSeVeDeLejos</h1>
 
-    <div id="sonando" class="mt-3 p-3 bordes cont">
+
+    <dialog id="customDialog">
+      <div class="dialog-content">
+        <button class="close-btn" id="closeDialogBtn">x</button>
+        <h2>¡¡Es tu momento!!</h2>
+        <p>Sube una foto para que se vea en la pantalla, dedicale la canción a alguien especial o ¡¡Las dos cosas!! (Si eres vergonzoso, no te preocupes deja el campo que no quieras en blanco y no sonará nada)</p>
+        <div class="form-elements">
+          <input type="file" id="fileInput" accept="image/*">
+          <img id="cameraPreview" src="" alt="Vista previa de la imagen">
+          <textarea id="textInput" placeholder="Escribe una dedicatoria..."></textarea>
+          <button id="submitBtn">Reproducir canción</button>
+        </div>
+      </div>
+    </dialog>
+
+    <div id="sonando" class="mt-3 p-3 bordes cont" style="display: none;">
       <h3 class="mb-3 text-white">SONANDO</h3>
       <div id="barra-progreso"></div>
       <div id="cancion_sonando" class="card p-2 m-2 noseleccionable">
@@ -30,26 +46,30 @@
 
       <!-- CANCIONES EN COLA -->
     </div>
-    <div id="cola" class="mt-3 p-3 bordes cont">
-      <h3 class="mb-3 text-white">CANCIONES EN ESPERA</h3>
+    <div id="cola" class="mt-3 p-3 bordes cont" style="display: none;">
+      <h3 class="mb-3 text-white">EN ESPERA</h3>
 
       <!-- CANCIONES EN COLA -->
     </div>
     <div id="juegos" class="mt-3 p-3 bordes cont">
       <h3 class="mb-3 text-white">JUEGA CON LA CASA</h3>
 
-      <div class="card p-2 m-2 seleccionable" onCLick="location.href='simon.html'">Simon dice</div>
+      <div class="card p-2 m-2 seleccionable" onCLick="location.href='comentarios.html'">Comentarios</div>
       <div class="card p-2 m-2 seleccionable" onCLick="onSeleccionable(this)">Mensaje del dia</div>
+      <div class="card p-2 m-2 seleccionable" onCLick="location.href='simon.html'">Simon dice</div>
+
       <!-- <div class="card p-2 m-2 seleccionable" onCLick="openXyzzy()">Tetris</div>
       <div class="card p-2 m-2 seleccionable" onCLick="openXyzzy2()">Snake</div> -->
     </div>
     <div id="canciones" class="mt-3 p-3 bordes cont">
-      <h3 class="mb-3 text-white">CANCIÓN (18:30 a 21:30)</h3>
+      <h3 class="mb-3 text-white" >ELIGE CANCIÓN</h3>      
+      <h3 class="mb-3 text-white">sólo de 18:30 a 21:30</h3>
 
       <!-- CANCIONES SELECCIONABLES -->
     </div>
 
 
+    <button id="openDialogBtn" style="display: none;">Abrir Modal</button>
 
   </div>
 
@@ -110,9 +130,13 @@
     ❄
   </div>
 
+
+  
+
   <!-- <script src="assets/js/bootstrap.min.js"></script> -->
-  <script src="assets/js/baseUrl.js"></script>
-  <script src="assets/js/main.js"></script>
+
+
+ 
   <!--
   <script src="js/assets/jquery.min.js"></script>
   <script src="js/assets/bootstrap.min.js"></script>

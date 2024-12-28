@@ -26,10 +26,15 @@ const {
     URL_STOP_ALL,
     URL_SIGUIENTE,
     FILE_COMENTARIOS,
+    FILE_ANIMACION_BTC,
     SEPARADOR,
+    SIMON_SAYS_TXT,
+    SIMON_SAYS_ERROR_TXT,
+    SHOW_PATH
 } = require('./constants');
 
 const BASE_URL = require('./baseUrl')
+const esInapropiadoZPK = require('./ZPKModerator'); // Importar la función desde ZPKModerator.js
 
 WEB_DATA = {}
 
@@ -48,6 +53,7 @@ WEB_DATA.secuenciaSimon = []
 WEB_DATA.secuenciaJugador = []
 WEB_DATA.colors = ['simon_dice_verde', 'simon_dice_rojo', 'simon_dice_amarillo', 'simon_dice_azul', 'simon_dice_ok', 'simon_dice_error']
 WEB_DATA.temporizadoresSimon = {}
+WEB_DATA.temporizadoresSimonTurnoJugador = {}
 WEB_DATA.postSimonTimeout = {}
 WEB_DATA.simon_dice_status = 'sds_end'
 WEB_DATA.simon_dice_timeout = 5
@@ -63,16 +69,21 @@ WEB_DATA.simon_dice_record = {
 }  // Se guarda el jugador y la puntuacion del record
 
 
+function now(){
+    var now = new Date()
+    return now
+}
+
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 app.use(cors())
 
 
 app.get('/test_mode_on', (req, res) => {
-    console.log(URL_SET_TEST_MODE_ON)
+    console.log(now() + ' ' + URL_SET_TEST_MODE_ON)
     axios.get(URL_SET_TEST_MODE_ON)
         .then()
-        .catch(err => { console.log(err) })
+        .catch(err => { console.log(now() + ' ' + err) })
     res.json({
         testmode: on
     })
@@ -80,10 +91,10 @@ app.get('/test_mode_on', (req, res) => {
 )
 
 app.get('/test_mode_off', (req, res) => {
-    console.log(URL_SET_TEST_MODE_OFF)
+    console.log(now() + ' ' + URL_SET_TEST_MODE_OFF)
     axios.get(URL_SET_TEST_MODE_OFF)
         .then()
-        .catch(err => { console.log(err) })
+        .catch(err => { console.log(now() + ' ' + err) })
     res.json({
         testmode: off
     })
@@ -97,7 +108,7 @@ app.get('/set_volume_to', (req, res) => {
 function setVolumen(volumen) {
     let action3 = URL_SET_VOLUME(volumen)
     axios.post(action3)
-        .then(() => console.log('Volumen al ' + volumen + ': ' + action3))
+        .then(() => console.log(now() + ' ' + 'Volumen al ' + volumen + ': ' + action3))
 }
 
 function setVolumenFueraDeHora(volumen) {
@@ -126,6 +137,7 @@ app.get('/siguiente', (req, res) => {
 )
 
 app.get('/canciones', (req, res) => {
+    throw new Error('Error de prueba para los logs')
     return res.json(
         {
             cancionesCola: WEB_DATA.cancionesColaParaWeb,
@@ -179,7 +191,7 @@ app.get('/canciones', (req, res) => {
 
 
                 })
-                .catch(err => { console.log(err) })
+                .catch(err => { console.log(now() + ' ' + err) })
         })
         .catch(err => { })
 })
@@ -219,9 +231,8 @@ app.get('/simon', (req, res) => {
         return res.status(200).json(responseJson)
     }
     catch (e) {
-        let txt = 'C:/xLights/Show2023/secuencias/simon_dice/simon_dice_logerror.txt'
-        let now = new Date();
-        fs.appendFileSync(txt, now + ' ' + e + ": " + e.message + '\n')
+        let txt = SIMON_SAYS_ERROR_TXT
+        fs.appendFileSync(txt, now() + ' ' + e + ": " + e.message + '\n')
     }
 })
 
@@ -242,7 +253,7 @@ app.post('/simon', async (req, res) => {
             WEB_DATA.secuenciaJugador = []
             WEB_DATA.secuenciaSimon.push(WEB_DATA.colors[colorIndexRandom])
             WEB_DATA.simon_dice_status = 'sds_starting'
-            //console.log("[simon dice]: " + WEB_DATA.secuenciaSimon)
+            console.log(now() + ' ' + "[simon dice]: STARTING " + WEB_DATA.secuenciaSimon)
             await setVolumenFueraDeHora(5)
             await encolarCancion('simon_dice_inicio', PLAYLIST_SIMON)
             // encolamos la primera
@@ -252,10 +263,11 @@ app.post('/simon', async (req, res) => {
             }
             //secsTimeout = WEB_DATA.secuenciaSimon.length * 0.6 * 1000 + 5
             setSimonTimer(jugador, 20, true)
-            WEB_DATA.simon_dice_status = 'sds_player'
+            setSimonTimerTurnoJugador(jugador, 11) // 11 segundos para el inicio
+            //WEB_DATA.simon_dice_status = 'sds_player'
 
         } else if (accion === 'select') { // Se captura la secuencia y se compara con la que hace simon
-            WEB_DATA.simon_dice_status = 'sds_player'
+            //WEB_DATA.simon_dice_status = 'sds_player'
             WEB_DATA.secuenciaJugador.push(color)
             for (let i = 0; i < WEB_DATA.secuenciaJugador.length; i++) {
                 if (WEB_DATA.secuenciaJugador[i] !== WEB_DATA.secuenciaSimon[i]) {
@@ -266,16 +278,19 @@ app.post('/simon', async (req, res) => {
 
             let aciertos = WEB_DATA.secuenciaSimon.length
 
+            console.log(now() + ' ' + "[" + jugador + " dice]: " + WEB_DATA.secuenciaJugador)
+
             if (esSecuenciaCorrecta === false) {
+                console.log(now() + ' ' + "[simon dice]: FIN ")
                 WEB_DATA.simon_dice_status = 'sds_end'
                 setSimonTimer(jugador, 0, true)
             } else {
-                //console.log("[" + jugador + " dice]: " + WEB_DATA.secuenciaJugador)
                 // Se ejecuta el color seleccionado por el jugador
                 WEB_DATA.simon_dice_status = 'sds_player_color_play'
                 setSimonTimer(jugador, WEB_DATA.simon_dice_timeout, true)
                 let cancionJ = color + '_' + (WEB_DATA.secuenciaJugador.length + 2)
                 await encolarCancion(cancionJ, PLAYLIST_SIMON)
+                
 
                 if (WEB_DATA.secuenciaJugador.length === WEB_DATA.secuenciaSimon.length) {
                     WEB_DATA.simon_dice_status = 'sds_ok'
@@ -293,7 +308,7 @@ app.post('/simon', async (req, res) => {
                     // Secuencia entera correcta
                     WEB_DATA.secuenciaJugador = []
                     WEB_DATA.secuenciaSimon.push(WEB_DATA.colors[colorIndexRandom])
-                    // console.log("[simon dice]: " + WEB_DATA.secuenciaSimon)
+                    console.log(now() + ' ' + "[simon dice]: " + WEB_DATA.secuenciaSimon)
                     WEB_DATA.simon_dice_status = 'sds_simon'
                     // se ejecuta la secuencia de colores entera
                     for (let i = 0; i < WEB_DATA.secuenciaSimon.length; i++) {
@@ -301,11 +316,15 @@ app.post('/simon', async (req, res) => {
                         await encolarCancion(cancion, PLAYLIST_SIMON)
                     }
                     WEB_DATA.timeoutIncrement = 10 + 1 * (WEB_DATA.secuenciaSimon.length + 1)
+                    //WEB_DATA.timeoutIncrement = 4
                     setSimonTimer(jugador, WEB_DATA.timeoutIncrement, true)
+                    setSimonTimerTurnoJugador(jugador, 3 + 0.6 * WEB_DATA.secuenciaSimon.length) // medio segundo por cada color que tiene que sonar
 
                 } else { // Secuencia acertada pero no completa
+                    setSimonTimerTurnoJugador(jugador, 0) // micro segundo para que suene lo pulsado
                     // Esperando pulsacion del jugador
-                    WEB_DATA.simon_dice_status = 'sds_player'
+                    //WEB_DATA.simon_dice_status = 'sds_player'
+                    //WEB_DATA.timeoutIncrement = 4
                 }
 
             }
@@ -316,9 +335,9 @@ app.post('/simon', async (req, res) => {
         return res.status(200).json({ esSecuenciaCorrecta: esSecuenciaCorrecta, cantidadColores: WEB_DATA.secuenciaSimon.length, timeout: secsTimeout })
     }
     catch (e) {
-        let txt = 'C:/xLights/Show2023/secuencias/simon_dice/simon_dice_logerror.txt'
-        let now = new Date();
-        fs.appendFileSync(txt, now + ' ' + e + '\n')
+        console.log(now() + ' error post simon ' + e.message)
+        let txt = SIMON_SAYS_ERROR_TXT
+        fs.appendFileSync(txt, now() + ' ' + e + '\n')
     }
 })
 
@@ -327,19 +346,18 @@ function setSimonTimer(jugador, segundos, post) {
     clearTimeout(WEB_DATA.temporizadoresSimon[jugador]);
     WEB_DATA.temporizadoresSimon[jugador] = setTimeout(() => {
         // Acción a realizar cuando se alcanza el timeout
-        console.log(`Timeout para persona ${jugador}, se cierra su partida porque ha pasado mas de ${segundos} segundos sin recibir una llamada`);
+        console.log(now() + ' ' + `Timeout para persona ${jugador}, se cierra su partida porque ha pasado mas de ${segundos} segundos sin recibir una llamada`);
 
         WEB_DATA.colaInterna = WEB_DATA.colaInterna.filter(elem => elem.query.jugador !== jugador) // Eliminamos al jugador porque se ha desconectado
         WEB_DATA.cancionesCola = WEB_DATA.cancionesCola.filter(elem => elem !== 'Simon dice ' + jugador)
         if (post) { // Se termina una partida del simon
 
-            console.log("[simon dice] Secuencia fallada " + jugador)
+            console.log(now() + ' ' + "[simon dice] Secuencia fallada " + jugador)
 
             // Grabo el log de puntuacion
             let aciertos = WEB_DATA.secuenciaSimon.length - 1
-            let txt = 'C:/xLights/Show2023/secuencias/simon_dice/simon_dice.txt'
-            let now = new Date();
-            fs.appendFileSync(txt, now + ' ' + aciertos + ' aciertos ' + ' ' + jugador + '\n')
+            let txt = SIMON_SAYS_TXT
+            fs.appendFileSync(txt, now() + ' ' + aciertos + ' aciertos ' + ' ' + jugador + '\n')
 
             WEB_DATA.postSimonTimeout[jugador] = true
             WEB_DATA.secuenciaSimon = []
@@ -363,7 +381,22 @@ function setSimonTimer(jugador, segundos, post) {
     }, segundos * 1000); // segundos de timeout
 }
 
-app.post('/canciones', (req, res) => {
+function setSimonTimerTurnoJugador(jugador, segundos) {
+    clearTimeout(WEB_DATA.temporizadoresSimonTurnoJugador[jugador]);
+    WEB_DATA.temporizadoresSimonTurnoJugador[jugador] =setTimeout(() => {
+        // Acción a realizar cuando se alcanza el timeout
+        console.log(now() + ' ' + `Turno del jugador pasados ${segundos} segundos`);
+        // Establece el turno para el jugador
+        WEB_DATA.simon_dice_status = 'sds_player'
+        delete WEB_DATA.temporizadoresSimonTurnoJugador[jugador]
+
+
+
+    }, segundos * 1000); // segundos de timeout
+}
+
+
+app.post('/canciones', async (req, res) => {
     let body = req.body
     let cancion = body.cancion
 
@@ -376,6 +409,23 @@ app.post('/canciones', (req, res) => {
     // if (WEB_DATA.lengthms >= 5 * 60 * 1000)
     //     return res.status(500).json({ message: 'Ya hay mas de 5 minutos de canciones, hay que esperar a que termine alguna' })
 
+
+    // Validar si el comentario es inapropiado
+    const esInapropiado = await esInapropiadoZPK(body.dedicatoria);
+
+    if (esInapropiado || body.dedicatoria == 'caca')   {
+        saveDirectory = `${SHOW_PATH}/secuencias/`
+        // Guardo el historico de censuras
+        txt = saveDirectory + 'censura.txt'
+        fs.appendFileSync(txt, `${now()} ${cancion} - ${body.dedicatoria}\n`)
+
+        // Enviar respuesta con mensaje de error si el comentario es inapropiado
+        return res.json({
+          success: false,
+          message: 'Nos preocupa que una mente inteligente haga este comentario. Lee un libro por favor, sólo uno.',
+        });
+    }
+
     WEB_DATA.cancionesCola.push(cancion) // Metemos la cancion en cola para que se muestre en la web
     if (WEB_DATA.cancionesCola.filter(elemCola => elemCola.includes('Simon dice ')).length > 0) {
         WEB_DATA.colaInterna.push(req) // Metemos el object de la peticion para hacerla cuando no haya simones en cola
@@ -383,9 +433,17 @@ app.post('/canciones', (req, res) => {
     }
 
     if (cancion == 'Cumpleaños Feliz') {
-        encolarCancionFelizCumplePost(req)
-    } else if (cancion == 'Mensaje del dia') {
-        encolarCancionMensajeDelDiaPost(req)
+        encolarCancionFelizCumplePost(req)    // Validar si el comentario es inapropiado
+    } else if (cancion == 'Mensaje del dia') {        
+        if (WEB_DATA.cancionesEnProceso.includes(cancion)) {
+            return res.json({
+                success: false,
+                message: 'Ya hay un mensaje del dia en espera.',
+                });
+        } else {
+            encolarCancionMensajeDelDiaPost(req)
+        }
+        
     } else { encolarCancionDedicatoriaPost(req) }
 })
 
@@ -399,31 +457,36 @@ function encolarCancionDedicatoriaPost(req) {
     WEB_DATA.cancionesEnProceso.push(cancion)
 
     let dedicatoria = body.dedicatoria != '' ? body.dedicatoria : undefined,
-        saveDirectory = 'C:/xLights/Show2023/secuencias/',
-        fileName
+        saveDirectory = `${SHOW_PATH}/secuencias/`,
+        fileName,
+        imagen = body.imagen ? body.imagen : undefined
     // Guardo el historico de canciones
     txt = saveDirectory + 'canciones.txt'
-    let now = new Date();
-    fs.appendFileSync(txt, now + ' ' + cancion + '\n')
+    fs.appendFileSync(txt, now() + ' ' + cancion + '\n')
 
-    if (dedicatoria) {
+    if (dedicatoria /*|| imagen */) {
         if (WEB_DATA.i >= decicatorias_max)
             WEB_DATA.i = 0
 
         fileName = `dedicatoria${++WEB_DATA.i}`
         let seq = 'secuencias/' + fileName + '.xsq'
         let mp3 = saveDirectory + fileName + '.mp3'
+        let jpg = saveDirectory + fileName + '.jpg'
         let txt = saveDirectory + fileName + '.txt'
-        console.log('DEDICATORIA: ' + dedicatoria + '\nARCHIVO: ' + fileName + '\n')
+        console.log(now() + ' ' + 'DEDICATORIA: ' + dedicatoria + '\nARCHIVO: ' + fileName + '\n')
         new gTTS('La siguiente canción tiene esta dedicatoria: ' + dedicatoria, 'es')
             .save(mp3, (err, result) => {
                 if (err)
-                    return console.log(err)
+                    return console.log(now() + ' ' + err)
                 fs.writeFileSync(txt, dedicatoria.toUpperCase())
                 // Guardo el historico de dedicatorias
                 txt = saveDirectory + 'dedicatorias.txt'
-                let now = new Date();
-                fs.appendFileSync(txt, now + ' ' + dedicatoria + '\n')
+                fs.appendFileSync(txt, now() + ' ' + dedicatoria + '\n')
+
+                //if (!imagen) {
+                //    fs.unlinkSync('');
+                //    fs.copyFileSync()
+                //}
 
 
                 // Abro la secuencia
@@ -445,37 +508,37 @@ function encolarCancionDedicatoriaPost(req) {
                                                 let action5 = URL_ENQUEUE_SONG(fileName, 'DEDICATORIAS')
                                                 axios.post(action5)
                                                     .then(() => {
-                                                        console.log('Dedicatoria añadida: ' + dedicatoria)
+                                                        console.log(now() + ' ' + 'Dedicatoria añadida: ' + dedicatoria)
                                                         WEB_DATA.cancionesCola.push(cancion)
                                                         WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
                                                         encolarCancion(cancion, PLAYLIST_CANCIONES)
                                                     }) //then5
                                                     .catch(e => {
-                                                        console.log('No se ha podido añadir la secuencia\n' + ':\n ' + e)
+                                                        console.log(now() + ' ' + 'No se ha podido añadir la secuencia\n' + ':\n ' + e)
                                                         WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
                                                         encolarCancion(cancion, PLAYLIST_CANCIONES)
                                                     }) //catch5
                                             }) //then4
                                             .catch(e => {
-                                                console.log('Error ' + action4 + ':\n ' + e + '\n\n')
+                                                console.log(now() + ' ' + 'Error ' + action4 + ':\n ' + e + '\n\n')
                                                 WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
                                                 encolarCancion(cancion, PLAYLIST_CANCIONES)
                                             }) //catch4
                                     }) //then3
                                     .catch(e => {
-                                        console.log('Error ' + action3 + ':\n ' + e + '\n\n')
+                                        console.log(now() + ' ' + 'Error ' + action3 + ':\n ' + e + '\n\n')
                                         WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
                                         encolarCancion(cancion, PLAYLIST_CANCIONES)
                                     }) //catch3
                             }) //then2
                             .catch(e => {
-                                console.log('Error ' + action2 + ':\n ' + e + '\n\n')
+                                console.log(now() + ' ' + 'Error ' + action2 + ':\n ' + e + '\n\n')
                                 WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
                                 encolarCancion(cancion, PLAYLIST_CANCIONES)
                             }) //catch2
                     }) //then1
                     .catch(e => {
-                        console.log('Error ' + action1 + ':\n ' + e + '\n\n')
+                        console.log(now() + ' ' + 'Error ' + action1 + ':\n ' + e + '\n\n')
                         WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
                         encolarCancion(cancion, PLAYLIST_CANCIONES)
                     }) //catch1
@@ -483,7 +546,7 @@ function encolarCancionDedicatoriaPost(req) {
 
         // var waitTill = new Date(new Date().getTime() + 1 * 1000);
         // // while (waitTill > new Date()) { }
-        // // console.log('Waited 1 s')
+        // // console.log(now() + ' ' + 'Waited 1 s')
 
 
 
@@ -505,25 +568,23 @@ function encolarCancionFelizCumplePost(req) {
     WEB_DATA.cancionesEnProceso.push(cancion)
 
     let dedicatoria = body.dedicatoria != '' ? body.dedicatoria : undefined,
-        saveDirectory = 'C:/xLights/Show2023/secuencias/',
+        saveDirectory = `${SHOW_PATH}/secuencias/`,
         fileName
     // Guardo el historico de canciones
     txt = saveDirectory + 'canciones.txt'
-    let now = new Date();
-    fs.appendFileSync(txt, now + ' ' + cancion + '\n')
+    fs.appendFileSync(txt, now() + ' ' + cancion + '\n')
 
     if (dedicatoria) {
 
         fileName = `Happy Birthday`
         let seq = 'secuencias/' + fileName + '.xsq'
         let txt = saveDirectory + fileName + '.txt'
-        console.log('Cumpleaños Feliz: ' + dedicatoria + '\nARCHIVO: ' + fileName + '\n')
+        console.log(now() + ' ' + 'Cumpleaños Feliz: ' + dedicatoria + '\nARCHIVO: ' + fileName + '\n')
 
         fs.writeFileSync(txt, dedicatoria.toUpperCase())
         // Guardo el historico de dedicatorias
         txt = saveDirectory + 'dedicatorias.txt'
-        let now = new Date();
-        fs.appendFileSync(txt, now + ' (Cumpleaños Feliz) ' + dedicatoria + '\n')
+        fs.appendFileSync(txt, now() + ' (Cumpleaños Feliz) ' + dedicatoria + '\n')
 
 
         // Abro la secuencia
@@ -547,25 +608,25 @@ function encolarCancionFelizCumplePost(req) {
                                         encolarCancion(cancion, PLAYLIST_CANCIONES)
                                     })//then 4
                                     .catch(e => {
-                                        console.log('Error ' + action4 + ':\n ' + e + '\n\n')
+                                        console.log(now() + ' ' + 'Error ' + action4 + ':\n ' + e + '\n\n')
                                         WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
                                         encolarCancion(cancion, PLAYLIST_CANCIONES)
                                     }) //catch4
                             }) //then3
                             .catch(e => {
-                                console.log('Error ' + action3 + ':\n ' + e + '\n\n')
+                                console.log(now() + ' ' + 'Error ' + action3 + ':\n ' + e + '\n\n')
                                 WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
                                 encolarCancion(cancion, PLAYLIST_CANCIONES)
                             }) //catch3
                     }) //then2
                     .catch(e => {
-                        console.log('Error ' + action2 + ':\n ' + e + '\n\n')
+                        console.log(now() + ' ' + 'Error ' + action2 + ':\n ' + e + '\n\n')
                         WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
                         encolarCancion(cancion, PLAYLIST_CANCIONES)
                     }) //catch2
             }) //then1
             .catch(e => {
-                console.log('Error ' + action1 + ':\n ' + e + '\n\n')
+                console.log(now() + ' ' + 'Error ' + action1 + ':\n ' + e + '\n\n')
                 WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
                 encolarCancion(cancion, PLAYLIST_CANCIONES)
             }) //catch1
@@ -573,7 +634,7 @@ function encolarCancionFelizCumplePost(req) {
 
         // var waitTill = new Date(new Date().getTime() + 1 * 1000);
         // // while (waitTill > new Date()) { }
-        // // console.log('Waited 1 s')
+        // // console.log(now() + ' ' + 'Waited 1 s')
 
     } else { // No hay dedicatoria
         WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
@@ -588,25 +649,23 @@ function encolarCancionMensajeDelDiaPost(req) {
     WEB_DATA.cancionesEnProceso.push(cancion)
 
     let dedicatoria = body.dedicatoria != '' ? body.dedicatoria : undefined,
-        saveDirectory = 'C:/xLights/Show2023/secuencias/',
+        saveDirectory = `${SHOW_PATH}/secuencias/`,
         fileName
     // Guardo el historico de canciones
     txt = saveDirectory + 'Mensaje del dia.txt'
-    let now = new Date();
-    fs.appendFileSync(txt, now + ' ' + cancion + '\n')
+    fs.appendFileSync(txt, now() + ' ' + cancion + '\n')
 
     if (dedicatoria) {
 
         fileName = `Mensaje del dia`
         let seq = 'secuencias/' + fileName + '.xsq'
         let txt = saveDirectory + fileName + '.txt'
-        console.log('Mensaje del dia: ' + dedicatoria + '\nARCHIVO: ' + fileName + '\n')
+        console.log(now() + ' ' + 'Mensaje del dia: ' + dedicatoria + '\nARCHIVO: ' + fileName + '\n')
 
         fs.writeFileSync(txt, dedicatoria.toUpperCase())
         // Guardo el historico de dedicatorias
         txt = saveDirectory + 'dedicatorias.txt'
-        let now = new Date();
-        fs.appendFileSync(txt, now + ' (Mensaje del dia) ' + dedicatoria + '\n')
+        fs.appendFileSync(txt, now() + ' (Mensaje del dia) ' + dedicatoria + '\n')
 
 
         // Abro la secuencia
@@ -630,25 +689,25 @@ function encolarCancionMensajeDelDiaPost(req) {
                                         encolarCancion(cancion, PLAYLIST_OTRAS)
                                     })//then 4
                                     .catch(e => {
-                                        console.log('Error ' + action4 + ':\n ' + e + '\n\n')
+                                        console.log(now() + ' ' + 'Error ' + action4 + ':\n ' + e + '\n\n')
                                         WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
                                         encolarCancion(cancion, PLAYLIST_OTRAS)
                                     }) //catch4
                             }) //then3
                             .catch(e => {
-                                console.log('Error ' + action3 + ':\n ' + e + '\n\n')
+                                console.log(now() + ' ' + 'Error ' + action3 + ':\n ' + e + '\n\n')
                                 WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
                                 encolarCancion(cancion, PLAYLIST_OTRAS)
                             }) //catch3
                     }) //then2
                     .catch(e => {
-                        console.log('Error ' + action2 + ':\n ' + e + '\n\n')
+                        console.log(now() + ' ' + 'Error ' + action2 + ':\n ' + e + '\n\n')
                         WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
                         encolarCancion(cancion, PLAYLIST_OTRAS)
                     }) //catch2
             }) //then1
             .catch(e => {
-                console.log('Error ' + action1 + ':\n ' + e + '\n\n')
+                console.log(now() + ' ' + 'Error ' + action1 + ':\n ' + e + '\n\n')
                 WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
                 encolarCancion(cancion, PLAYLIST_OTRAS)
             }) //catch1
@@ -656,7 +715,7 @@ function encolarCancionMensajeDelDiaPost(req) {
 
         // var waitTill = new Date(new Date().getTime() + 1 * 1000);
         // // while (waitTill > new Date()) { }
-        // // console.log('Waited 1 s')
+        // // console.log(now() + ' ' + 'Waited 1 s')
 
     } else { // No hay dedicatoria
         WEB_DATA.cancionesEnProceso = WEB_DATA.cancionesEnProceso.filter(c => c != cancion)
@@ -675,21 +734,21 @@ async function encolarCancion(cancion, playlist) {
         let action1 = URL_ENQUEUE_SONG(cancion, playlist)
         await axios.post(action1)
         if (playlist != PLAYLIST_SIMON) {
-            console.log('Canción añadida a la cola: ' + cancion)
+            console.log(now() + ' ' + 'Canción añadida a la cola: ' + cancion)
         }
         // // Paro el background
         // let action2 = URL_CLEAR_BACKGROUND
         // axios.post(action2)
-        //     .then(() => console.log('Parado el background: ' + action2))
+        //     .then(() => console.log(now() + ' ' + 'Parado el background: ' + action2))
         //     .catch(e => res.status(500).json({ response: 'No se han podido parar las animaciones: ' + e }))
 
 
         // let action3 = URL_SET_VOLUME(50)
         // axios.post(action3)
-        //     .then(() => console.log('Volumen al 50: ' + action3))
+        //     .then(() => console.log(now() + ' ' + 'Volumen al 50: ' + action3))
         //     .catch(e => res.status(500).json({ response: 'No se ha podido modificar volumen: ' + e }))
     } catch (error) {
-        console.log('Error encolando cancion : ' + error);
+        console.log(now() + ' ' + 'Error encolando cancion : ' + error);
     }
 
 }
@@ -706,7 +765,7 @@ async function encolarCancionYEsperar(cancion, playlist) {
                     WEB_DATA.sonando_real = resData2.data.step
                 }
             })
-            .catch(err => { console.log(err) })
+            .catch(err => { console.log(now() + ' ' + err) })
     }
     while (WEB_DATA.sonando_real === cancion || WEB_DATA.cancionesCola.indexOf(cancion) != -1) {
         await axios.get(URL_GET_PLAYING_STATUS)
@@ -718,7 +777,7 @@ async function encolarCancionYEsperar(cancion, playlist) {
                     WEB_DATA.sonando_real = resData2.data.step
                 }
             })
-            .catch(err => { console.log(err) })
+            .catch(err => { console.log(now() + ' ' + err) })
     }
 }
 
@@ -737,6 +796,7 @@ app.get('/renderall', (req, res) => {
         'secuencias/Animacion9.xsq',
         'secuencias/Animacion10.xsq',
         'secuencias/Animacion11.xsq',
+        'secuencias/AnimacionBTC.xsq',
         'secuencias/Campanadas.xsq',
         'secuencias/Cant stop the feeling.xsq',
         'secuencias/Christmas Tecno Mix.xsq',
@@ -753,7 +813,6 @@ app.get('/renderall', (req, res) => {
         'secuencias/Inicio Show.xsq',
         'secuencias/Let It Snow.xsq',
         'secuencias/Los peces en el rio.xsq',
-        'secuencias/marruecos.xsq',
         'secuencias/Michael Jackson Mix.xsq',
         'secuencias/Noche de paz.xsq',
         'secuencias/Blanca Navidad - La Oreja de Van Gogh.xsq',
@@ -786,21 +845,62 @@ app.get('/comentarios', (req, res) => {
         if (!err)
             comentariosValidados.push(c)
     })
-    // console.log(comentariosValidados)
+    // console.log(now() + ' ' + comentariosValidados)
     res.json({ comentarios: comentariosValidados })
 })
 
-app.post('/comentarios', (req, res) => {
-    // console.log(req.body)
-    let request = req.body
-    request.date = new Date()
-    fs.appendFileSync(FILE_COMENTARIOS, JSON.stringify(request) + SEPARADOR)
-    res.redirect(`http://micasasevedelejos.tudelanicos.com:31500/xScheduleWeb/comentarios.html`)
-})
+//app.post('/comentarios', (req, res) => {
+    // console.log(now() + ' ' + req.body)
+//    let request = req.body
+//    request.date = new Date()
+//    fs.appendFileSync(FILE_COMENTARIOS, JSON.stringify(request) + SEPARADOR)
+//    res.redirect(`http://micasasevedelejos.tudelanicos.com:31500/xScheduleWeb/comentarios.html`)
+//})
+
+
+app.post('/comentarios', async (req, res) => {
+    let request = req.body;
+    const comentario = request.comentario;
+
+    try {
+        // Validar si el comentario es inapropiado
+        const esInapropiado = await esInapropiadoZPK(comentario);
+    
+        if (esInapropiado )   {
+            saveDirectory = `${SHOW_PATH}/secuencias/`
+            // Guardo el historico de censuras
+            txt = saveDirectory + 'censura.txt'
+            fs.appendFileSync(txt, `${now()} Comentarios - ${comentario}\n`)
+
+            // Enviar respuesta con mensaje de error si el comentario es inapropiado
+            return res.json({
+            success: false,
+            message: 'Nos preocupa que una mente inteligente haga este comentario. Lee un libro por favor, sólo uno.',
+            });
+        }
+        
+    
+        // Guardar el comentario si es válido
+        request.date = new Date();
+        fs.appendFileSync(FILE_COMENTARIOS, JSON.stringify(request) + SEPARADOR);
+    
+        // Enviar respuesta de éxito
+        res.json({
+          success: true,
+          message: 'Tu comentario ha sido enviado correctamente.',
+        });
+
+
+    } catch (error) {
+      console.error('Error procesando el comentario:', error.message);
+      res.status(500).send('Hubo un error al procesar tu comentario.');
+    }
+  });
+
 
 // Temporizador para poner ANIMACIONES
 function startBackground() {
-    //console.log('Background timer')
+    //console.log(now() + ' ' + 'Background timer')
     // Busco el estado del Scheduler
     axios.get(URL_GET_PLAYING_STATUS)
         .then(resData => {
@@ -813,13 +913,13 @@ function startBackground() {
             }
 
         })
-        .catch(err => { console.log(err) })
+        .catch(err => { console.log(now() + ' ' + err) })
 
 }
 
 // Temporizador para poner Agradecimientos
 function startAgradecimientos() {
-    //console.log('Background timer')
+    //console.log(now() + ' ' + 'Background timer')
 
     if (WEB_DATA.secuenciaSimon.length > 0) { return }
 
@@ -874,7 +974,7 @@ async function procesaColas() {
                         }
                     }
                 })
-                .catch(err => { console.log(err) })
+                .catch(err => { console.log(now() + ' ' + err) })
         })
         .catch(err => { })
 
@@ -882,51 +982,51 @@ async function procesaColas() {
 
 function renderizarCancion(cancion) {
     let action1 = URL_XLIGTHS_COMMAND('openSequence' + '?force=False&seq=' + cancion)
-    console.log(action1)
+    console.log(now() + ' ' + action1)
     axios.get(action1)
         .then(r => {
             // Renderizo
             let action2 = URL_XLIGTHS_COMMAND('renderAll')
-            console.log(action2)
+            console.log(now() + ' ' + action2)
             axios.get(action2)
                 .then(r => {
                     // Guardo la secuencia
                     let action3 = URL_XLIGTHS_COMMAND('saveSequence')
-                    console.log(action3)
+                    console.log(now() + ' ' + action3)
                     axios.get(action3)
                         .then(r => {
                             let action4 = URL_XLIGTHS_COMMAND('closeSequence')
                             return axios.get(action4)
-                                .then(console.log('Cerrada'))
+                                .then(console.log(now() + ' ' + 'Cerrada'))
                                 .catch(e => {
-                                    console.log('Error ' + action4 + ':\n ' + e + '\n\n')
+                                    console.log(now() + ' ' + 'Error ' + action4 + ':\n ' + e + '\n\n')
                                 })
                         })
                         .catch(e => {
-                            console.log('Error ' + action3 + ':\n ' + e + '\n\n')
+                            console.log(now() + ' ' + 'Error ' + action3 + ':\n ' + e + '\n\n')
                         })
                 })
                 .catch(e => {
-                    console.log('Error ' + action2 + ':\n ' + e + '\n\n')
+                    console.log(now() + ' ' + 'Error ' + action2 + ':\n ' + e + '\n\n')
                 })
         })
         .catch(e => {
-            console.log('Error ' + action1 + ':\n ' + e + '\n\n')
+            console.log(now() + ' ' + 'Error ' + action1 + ':\n ' + e + '\n\n')
         })
 }
 
 async function renderizarCancion_async(cancion) {
     let action1 = URL_XLIGTHS_COMMAND('openSequence' + '?force=False&seq=' + cancion)
-    console.log(action1)
+    console.log(now() + ' ' + action1)
     await axios.get(action1)
     let action2 = URL_XLIGTHS_COMMAND('renderAll')
-    console.log(action2 + ' ' + cancion)
+    console.log(now() + ' ' + action2 + ' ' + cancion)
     await axios.get(action2)
     let action3 = URL_XLIGTHS_COMMAND('saveSequence')
-    console.log(action3 + ' ' + cancion)
+    console.log(now() + ' ' + action3 + ' ' + cancion)
     await axios.get(action3)
     let action4 = URL_XLIGTHS_COMMAND('closeSequence')
-    console.log(action4 + ' ' + cancion)
+    console.log(now() + ' ' + action4 + ' ' + cancion)
     await axios.get(action4)
 }
 
@@ -975,7 +1075,7 @@ function mapListByParam(list, params) {
                     WEB_DATA.cancionesSeleccionables = WEB_DATA.canciones.filter(can => !WEB_DATA.cancionesCola.includes(can))
                     WEB_DATA.cancionesSeleccionables = WEB_DATA.cancionesSeleccionables.filter(can => !WEB_DATA.cancionesEnProceso.includes(can))
                 })
-                .catch(err => { console.log(err) })
+                .catch(err => { console.log(now() + ' ' + err) })
         })
         .catch(err => { })
 }, 1000)*/
@@ -984,7 +1084,7 @@ function LeeRecordSimonDice() {
     const fs = require('fs');
 
     // Ruta del archivo de texto
-    const filePath = 'C:/xLights/Show2023/secuencias/simon_dice/simon_dice.txt';
+    const filePath = SIMON_SAYS_TXT;
 
     // Lee el archivo de texto
     fs.readFile(filePath, 'utf8', (err, data) => {
@@ -1007,7 +1107,7 @@ function LeeRecordSimonDice() {
             const logg = line.substring(68, 70);
             const aciertos = parseInt(logg);
 
-            // console.log(`[leeRecordSimonDice]: Linea ${line} - Aciertos ${aciertos}`)
+            // console.log(now() + ' ' + `[leeRecordSimonDice]: Linea ${line} - Aciertos ${aciertos}`)
 
             // Comprueba si el valor actual de logg es mayor que el máximo encontrado hasta ahora
             if (!isNaN(aciertos) && aciertos > maxAciertos) {
@@ -1019,9 +1119,9 @@ function LeeRecordSimonDice() {
         });
 
         if (maxAciertos === 0) {
-            console.log('[leeRecordSimonDice]: No se encontró ningún valor de log en el archivo.');
+            console.log(now() + ' ' + '[leeRecordSimonDice]: No se encontró ningún valor de log en el archivo.');
         } else {
-            console.log('[leeRecordSimonDice]: El record de Simon Dice es:', maxAciertos, 'y fue', jugador);
+            console.log(now() + ' ' + '[leeRecordSimonDice]: El record de Simon Dice es:', maxAciertos, 'y fue', jugador);
             WEB_DATA.simon_dice_record = {
                 jugador: jugador,
                 aciertos: maxAciertos,
@@ -1032,16 +1132,57 @@ function LeeRecordSimonDice() {
 
 }
 
+const fetch = require('node-fetch'); // Para realizar solicitudes HTTP
+//const fs = require('fs'); // Para interactuar con el sistema de archivos
+
+// Función para obtener la cotización de BTC desde Coinbase y guardarla en un archivo
+async function obtenerBTCdeCoinbase() {
+    try {
+        // URL de la API de Coinbase para obtener la cotización actual de BTC en USD
+        const url = 'https://api.coinbase.com/v2/prices/BTC-USD/spot';
+
+        // Solicitud a la API
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`Error en la solicitud: ${response.statusText}`);
+        }
+
+        // Parsear la respuesta JSON
+        const data = await response.json();
+
+        // Extraer el precio de BTC en USD
+        let precioBTC = parseFloat(data.data.amount);
+        
+        // Formatear el precio sin decimales y con separador de miles
+        precioBTC = Math.round(precioBTC).toLocaleString('es-ES');
+        
+        // Formatear el contenido a guardar
+        const contenido = `Cotización de BTC: ${precioBTC} $\n`;
+
+        // Escribir la cotización en el archivo AnimacionBTC.txt
+        fs.writeFileSync(FILE_ANIMACION_BTC, contenido, 'utf8');
+
+        console.log(now() + ' ' + `Cotización de BTC ${precioBTC} $ guardada en AnimacionBTC.txt`);
+
+        renderizarCancion('secuencias/AnimacionBTC.fseq')
+    } catch (error) {
+        console.log(now() + ' ' + `Error obteniendo la cotización de BTC: ${error.message}`);
+    }
+}
+
+
 app.listen(port, () => {
     axios.get(URL_GET_PLAYLIST_STEPS)
         .then(res => WEB_DATA.canciones = res.data.steps.map(step => step.name))
-        .catch(err => console.log(err))
-    console.log(`Marin Falcon app listening on http://${BASE_URL(port)}`)
-    console.log(`Página de canciones: http://${BASE_URL()}/xScheduleWeb/index.html`)
-    console.log(`Página de comentarios: http://${BASE_URL()}/xScheduleWeb/comentarios.html`)
+        .catch(err => console.log(now() + ' ' + err))
+    console.log(now() + ' ' + `Marin Falcon app STARTED and listening on http://${BASE_URL(port)}`)
+    console.log(now() + ' ' + `Página de canciones: http://${BASE_URL()}/xScheduleWeb/index.html`)
+
     LeeRecordSimonDice()
 
     setInterval(startBackground, 5000);
     setInterval(startAgradecimientos, 30 * 60 * 1000);
     setInterval(procesaColas, 500);
+    // setInterval(obtenerBTCdeCoinbase, 15 * 60 * 1000);
 })

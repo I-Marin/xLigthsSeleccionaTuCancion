@@ -5,6 +5,7 @@ const $colaCont = document.getElementById('cola-canciones-cont')
 const $msg = document.getElementById('msg')
 const $recordAciertos = document.getElementById('record-aciertos')
 const $recordJugador = document.getElementById('record-jugador')
+const $body = document.getElementById('body')
 const URL_SIMON_GET = (jugador, nuevaPartida) => `http://${BASE_URL('3000')}/simon?jugador=${jugador}&nuevaPartida=${nuevaPartida}`
 const URL_SIMON_POST = `http://${BASE_URL('3000')}/simon`
 
@@ -46,7 +47,7 @@ else {
                 $recordAciertos.innerHTML = record.aciertos
                 $recordJugador.innerHTML = record.jugador
             }
-
+            // $recordJugador.innerHTML = sds
             if (status === 'quit') {
                 location.href = 'index.html'
                 return
@@ -57,13 +58,13 @@ else {
             }
 
             if (SIMON_DATA.start && SIMON_DATA.estadoEnCola === 'running') {
-                activarBotones()
+                //activarBotones()
                 postSimon('start', '')
                 SIMON_DATA.start = false
             }
 
-            if (1 == 0) {
-                if (SIMON_DATA.estadoSimon == 'sds_player') {
+            if (1 == 1) {
+                if (SIMON_DATA.estadoSimon == 'sds_player' || SIMON_DATA.estadoSimon == 'sds_player_color_play') {
                     activarBotones()
                 } else { desactivarBotones() }
             }
@@ -125,9 +126,8 @@ function desactivarBotones(activarCola) {
     $botonesCont.setAttribute("style", "display: none;")
 }
 
-
 function seleccionarColor(boton) {
     desactivarBotones(false)
     postSimon('select', boton.getAttribute("id"))
-    setTimeout(activarBotones, 250) // Activamos los botones una vez ejecutada la secuencia del color
+    //setTimeout(activarBotones, 250) // Activamos los botones una vez ejecutada la secuencia del color
 }

@@ -1,20 +1,26 @@
 body {
     background-image: url('../img/fondo.jpg');
     background-repeat: no-repeat repeat-y;
-    background-size: 100%;
     font-family: 'Verdana';
     backdrop-filter: blur(3px);
     background-color: green;
+    min-width: 100wh;
+    min-height: 100vh;
+    touch-action: manipulation; /* Evita el zoom con doble toque */
 }
-
+.container {
+    width: 100vw;
+}
 .titulo {
     font-family: Verdana;
     font-weight: bold;
-    color: aliceblue
+    color: aliceblue;
+    font-size: 8vw; /* Tamaño de fuente proporcional al ancho de la ventana */
 }
 
 h3.titulo {
     color: yellow;
+    font-size: 5vw; /* Tamaño de fuente proporcional al ancho de la ventana */
 }
 
 #cola {
@@ -95,4 +101,100 @@ a {
     color: blue;
     text-decoration: underline;
 
+}
+
+#openDialogBtn {
+  background: #ffcc00;
+  color: #333;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 50px;
+}
+
+dialog {
+  background-color: #f3f3f3;
+  border: none;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 400px;
+  padding: 20px;
+  position: fixed;          /* Asegura que se mantenga fijo en la pantalla */
+  top: 50%;                 /* Lo posiciona en el 50% del alto de la pantalla */
+  left: 50%;                /* Lo posiciona en el 50% del ancho de la pantalla */
+  transform: translate(-50%, -50%); /* Lo centra exactamente en el medio */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+dialog[open] {
+  transform: translate(-50%, -50%);
+  opacity: 1;
+}
+
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  color: #333;
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #d9534f;
+}
+
+.form-elements {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+input[type="file"] {
+  border: none;
+}
+
+#cameraPreview {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border: 2px solid #ccc;
+  border-radius: 5px;
+  display: none;
+}
+
+textarea {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  resize: vertical;
+  font-size: 14px;
+}
+
+#submitBtn {
+  background: #28a745;
+  color: #fff;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+#submitBtn:hover {
+  background: #218838;
+}
+
+/* Desactiva el scroll cuando el dialog está abierto */
+body.no-scroll {
+  overflow: hidden;
 }
