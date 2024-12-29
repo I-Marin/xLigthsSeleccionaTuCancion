@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, user-scalable=no">
+  <link rel="stylesheet" href="assets/css/main.css">
+  <style>
+    html,
+    body {
+      margin: 0;
+    }
+
+    html {
+      padding: 2vh;
+      height: 100vh;
+
+      backdrop-filter: blur(3px);
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-color: #f0f0f0;
+      height: 100%;
+
+      background-image: url('./assets/img/fondo.jpg');
+      background-repeat: no-repeat repeat-y;
+      background-size: 100%;
+
+      overflow: hidden;
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-gap: 8px;
+      width: 100%;
+      height: 70%;
+      margin-bottom: 4vh;
+    }
+
+    .button {
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    h1 {
+      color: white;
+      text-shadow: 2px 0 black, -2px 0 black, 0 2px black, 0 -2px black,
+        1px 1px black, -1px -1px black, 1px -1px black, -1px 1px black;
+    }
+
+    h2 {
+      color: beige;
+      text-shadow: 2px 0 black, -2px 0 black, 0 2px black, 0 -2px black,
+        1px 1px black, -1px -1px black, 1px -1px black, -1px 1px black;
+    }
+
+    .blue {
+      background-color: #001aff;
+    }
+
+    .red {
+      background-color: #ff1b02;
+    }
+
+    .yellow {
+      background-color: #ddf312;
+    }
+
+    .green {
+      background-color: #2ecc71;
+    }
+  </style>
+</head>
+
+<body id="body">
+  <h3 id="msg">Espere hasta que empiece el Tribial navideño... no cierre ni actualice esta página</h3>
+  <div id="cola-canciones-cont">
+    <div id="colaCanciones">
+      <div id="sonando" class="p-3 bordes cont">
+        <h3 class="mb-3 text-white">SONANDO</h3>
+        <div id="barra-progreso"></div>
+        <div id="cancion_sonando" class="card p-2 m-2 ">
+          <span id="cancion_sonando_span"></span>
+        </div>
+
+
+        <!-- CANCIONES EN COLA -->
+      </div>
+      <div id="cola" class="p-3 bordes cont">
+        <h3 class="mb-3 text-white">EN ESPERA</h3>
+
+        <!-- CANCIONES EN COLA -->
+      </div>
+    </div>
+  </div>
+  <div class="grid-container" id="botones-cont">
+    <button class="button green" id="simon_dice_verde" onclick="seleccionarRespuesta(this)"></button>
+    <button class="button red" id="simon_dice_rojo" onclick="seleccionarRespuesta(this)"></button>
+    <button class="button yellow" id="simon_dice_amarillo" onclick="seleccionarRespuesta(this)"></button>
+    <button class="button blue" id="simon_dice_azul" onclick="seleccionarRespuesta(this)"></button>
+  </div>
+  <script src="assets/js/baseUrl.js"></script>
+  <script src="assets/js/kahoohoo.js"></script>
+  <script src="assets/js/main.js"></script>
+</body>
+
+</html>
