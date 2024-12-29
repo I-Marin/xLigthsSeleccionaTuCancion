@@ -102,16 +102,13 @@ const kahootColores = [
 ]
 
 function reiniciarKahootVariables() {
-    WEB_DATA.kahootEstado = 'waitingPlayers'
+    WEB_DATA.kahootEstado = ''
     WEB_DATA.kahootTimeouts = {}
     WEB_DATA.kahootInterval = {}
     WEB_DATA.kahootInciado = false
     WEB_DATA.kahootPreguntaIndex = 0
     WEB_DATA.kahootPreguntasElegidas = obtenerPreguntasAleatorias(kahootPreguntasMax)
-    WEB_DATA.kahootJugadores = [
-        {nombre: "aaaa", puntuacion: 2},
-        {nombre: "bbbb", puntuacion: 3}
-    ] // {nombre: string, puntuacion: int, color: string}
+    WEB_DATA.kahootJugadores = [] // {nombre: string, puntuacion: int, color: string}
     WEB_DATA.kahootJugadoresRespondido = []
 }
 reiniciarKahootVariables()
@@ -372,13 +369,10 @@ function setSimonTimer(jugador, segundos, post) {
 
         //Encolar todas las peticiones hasta el siguiente simon dice
         let reqEncolar
-        while (WEB_DATA.colaInterna.length > 0 && WEB_DATA.colaInterna[0].body.cancion) {
+        while (WEB_DATA.colaInterna.length > 0 && (WEB_DATA.colaInterna[0].body.cancion.includes('Simon dice') || WEB_DATA.colaInterna[0].body.cancion.includes('Kahoot'))) {
             reqEncolar = WEB_DATA.colaInterna.shift()
             encolarCancionDedicatoriaPost(reqEncolar)
-
         }
-
-
 
     }, segundos * 1000); // segundos de timeout
 }
@@ -900,46 +894,72 @@ app.post('/comentarios', async (req, res) => {
   });
 
 app.get('/kahoot', async (req, res) => {
-    let { jugador, nuevoJugador } = req.body
+    const { jugador } = req.body
 
-    if (WEB_DATA.kahootEstado === '') { // No hay partida activa, se pone
-        WEB_DATA.cancionesCola.push('Kahoot Navideño (Uniros desde el apartado de JUEGOS)')
-        WEB_DATA.kahootEstado = 'queue'
-        //WEB_DATA.kahootInterval = setInterval(itervalKahoot(), 500)
-    } else if (WEB_DATA.kahootEstado === 'waitingPlayers' || WEB_DATA.cancionesCola.filter(cancion => cancion.includes('Kahoot')).length > 0) {
-        if (WEB_DATA.kahootJugadores.filter(jug => jug.nombre === jugador).length === 0) {
-            WEB_DATA.kahootJugadores.push({nombre: jugador, puntuacion: 0})
-        } else if (nuevoJugador === true) {
-            return res.status(409).json({error: "Ese nombre ya existe en la partida, por favor, selecciona otro nombre para jugar"})
-        }
-        setKahootTimeout(jugador)
+    setKahootTimeout(jugador)
+
+    return res.status(200).json({
+        status: WEB_DATA.kahootEstado,
+        pregunta: WEB_DATA.kahootPreguntasElegidas[WEB_DATA.kahootPreguntaIndex].pregunta,
+        respuestas: WEB_DATA.kahootPreguntasElegidas[WEB_DATA.kahootPreguntaIndex].respuestas,
+        hanRespondido: WEB_DATA.kahootJugadoresRespondido,
+    })
+})
+
+app.post('/kahoot', async (req, res) => {
+    let { jugador, respuesta } = req.body
+
+    // El jugador ya a respondido
+    if (WEB_DATA.kahootJugadoresRespondido.filter(jug => jug !== jugador) > 0) {
+        return
     }
+
+    if (respuesta === WEB_DATA.kahootPreguntasElegidas[WEB_DATA.kahootPreguntaIndex].solucion) {
+        WEB_DATA.kahootJugadores.find(jug === jug.nombre === jugador).puntuacion += 10 - WEB_DATA.kahootJugadoresRespondido.length
+    }
+    WEB_DATA.kahootJugadoresRespondido.push(jugador)
+})
+
+app.post('/kahoot/nuevo-jugador', async (req, res) => {
+    // Si la partida no esta creada se crea
+    if (WEB_DATA.kahootEstado === '') {
+
+    }
+    // Si la partida esta en curso
+    const { nombreJugador } = req.body
+
+    if (!WEB_DATA.kahootEstado.includes['waitingPlayers', 'queue']) {
+        return res.status(503).json({error: "No se puede unir mientras hay una partida activa"})
+    }
+    // Si el jugador ya existe
+    if (WEB_DATA.kahootJugadores.filter(jug => jug.nombre === nombreJugador) > 0) {
+        return res.status(409).json({error: "Ese nombre ya existe en la partida, por favor, selecciona otro nombre para jugar"})
+    }
+    
+    let jugador = {nombre: nombreJugador, puntuacion: 0}
+    WEB_DATA.kahootJugadores.push(jugador)
+    setKahootTimeout(jugador.nombre)
 })
 
 function setKahootTimeout(jugador) {
     clearTimeout(WEB_DATA.kahootTimeouts[jugador])
     WEB_DATA.kahootTimeouts[jugador] = setTimeout(() => {
-        // TODO: hacer intervalo para eliminar al jugador si tiene 10 segundos de inactividad y para parar la partida si este es el timeout del ultimo jugador
-        if (WEB_DATA.kahootEstado === 'queue' || WEB_DATA.kahootEstado === 'waitingPlayers')
-        WEB_DATA.kahootJugadores = WEB_DATA.kahootJugadores.filter(jug => jugador !== jug.nombre)
-        if (WEB_DATA.kahootJugadores.length <= 0) {
-            reiniciarKahootVariables()
+        // Si da timeout y esta en el estado de cola, esperando jugadores o el juego parado se quita al jugador
+        if (WEB_DATA.kahootEstado.includes(['queue', 'waitingPlayers', ''])) {
+            WEB_DATA.kahootJugadores = WEB_DATA.kahootJugadores.filter(jug => jugador !== jug.nombre)
+            // Si no hay jugadores después de eliminarlo se reincian las variables
+            if (WEB_DATA.kahootJugadores.length <= 0) {
+                finalizarKahoot()
+            }
         }
-    }, 10000)
+    }, 3000)
 }
 
-
-app.post('/kahoot', async (req, res) => {
-    let { jugador, respuesta } = req.body
-
-    WEB_DATA.kahootJugadores
-})
-
-app.get('/kahoot-inicio', async (req, res) => {
+app.get('/kahoot/inicio', async (req, res) => {
     if (WEB_DATA.kahootEstado != 'waiting' && WEB_DATA.kahootEstado != 'waitingPlayers') {
         return;
     }
-    WEB_DATA.kahootEstado = 'running'
+
     encolarCancion(kahootSecuencias.inicio, PLAYLIST_KAHOOT)
     WEB_DATA.kahootJugadores.forEach(async (jug, index) => {
         jug.color = kahootColores[index]
@@ -965,15 +985,16 @@ function buclePreguntasKahoot() {
             renderizarEncolarKahoot(kahootSecuencias[secuenciaJugadorFin])
         })
         WEB_DATA.kahootEstado = 'quit'
-        setTimeout(reiniciarKahootVariables, 10000)
+        setTimeout(finalizarKahoot, 10000)
         return
     }
+    WEB_DATA.kahootEstado = 'running'
 
     let puntuacionesStr = ''
     WEB_DATA.kahootJugadores.forEach(jug => puntuacionesStr += `${jug.nombre}: ${jug.puntuacion}\n`)
     fs.writeFileSync(`${SHOW_PATH}/secuencias/kahoot/puntuaciones.txt`, puntuacionesStr)
     renderizarEncolarKahoot(kahootSecuencias.cambio)
-    
+
     let preguntaActual = WEB_DATA.kahootPreguntasElegidas[WEB_DATA.kahootPreguntaIndex]
     fs.writeFileSync(`${SHOW_PATH}/secuencias/kahoot/pregunta.txt`, preguntaActual.pregunta)
     preguntaActual.respuestas.forEach((respuesta, index) => {
@@ -990,22 +1011,25 @@ function buclePreguntasKahoot() {
             WEB_DATA.kahootEstado = 'waitingAnwers'
             // Seteamos un Timeout de 10 segundos (tiempo para responder) para que renderize las puntuaciones y la siguiente pregunta
             setTimeout(() => {
-                WEB_DATA.kahootEstado = 'running'
                 WEB_DATA.kahootPreguntaIndex++
-
-                let puntuacionesStr = ''
-                WEB_DATA.kahootJugadores.forEach(jug => puntuacionesStr += `${jug.nombre}: ${jug.puntuacion}\n`)
-                fs.writeFileSync(`${SHOW_PATH}/secuencias/kahoot/puntuaciones.txt`, puntuacionesStr)
-                renderizarEncolarKahoot(kahootSecuencias.cambio)
-                setTimeout(buclePreguntasKahoot, 5000)
+                WEB_DATA.kahootJugadoresRespondido = []
+                buclePreguntasKahoot()
             }, 10 * 1000)
         }
     }, 500)
 }
 
+function finalizarKahoot() {
+    reiniciarKahootVariables()
+    if (WEB_DATA.sonando.includes("Kahoot")) {
+        encolarHastaJuego()
+        WEB_DATA.cancionesCola.shift()
+    }
+}
+
 function renderizarEncolarKahoot(secuencia) {
     renderizarCancion(`secuencias/kahoot/${secuencia}.fseq`)
-    encolarCancion(secuencia, PLAYLIST_KAHOOT)    
+    encolarCancion(secuencia, PLAYLIST_KAHOOT)
 }
 
 // Temporizador para poner ANIMACIONES
@@ -1091,6 +1115,14 @@ async function procesaColas() {
         })
         .catch(err => { })
 
+}
+
+function encolarHastaJuego() {
+    let reqEncolar
+    while (WEB_DATA.colaInterna.length > 0 && (WEB_DATA.colaInterna[0].body.cancion.includes('Simon dice') || WEB_DATA.colaInterna[0].body.cancion.includes('Kahoot'))) {
+        reqEncolar = WEB_DATA.colaInterna.shift()
+        encolarCancionDedicatoriaPost(reqEncolar)
+    }
 }
 
 function renderizarCancion(cancion) {
