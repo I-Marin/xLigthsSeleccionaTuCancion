@@ -36,7 +36,7 @@ const {
 
 const BASE_URL = require('./baseUrl')
 const esInapropiadoZPK = require('./ZPKModerator'); // Importar la función desde ZPKModerator.js
-const obtenerPreguntasAleatorias = require('./kahoohoo_preguntas')
+const obtenerPreguntasAleatorias = require('./kahoot_preguntas')
 
 WEB_DATA = {}
 
@@ -70,8 +70,8 @@ WEB_DATA.simon_dice_record = {
     fecha: undefined
 }  // Se guarda el jugador y la puntuacion del record
 
-const kahoohooPreguntasMax = 2
-const kahoohooSecuencias = {
+const kahootPreguntasMax = 2
+const kahootSecuencias = {
     // Inicio
     inicio: "inicio", // 13s
     inicio_naranja: "inicio_jugador_naranja", // 6s
@@ -92,7 +92,7 @@ const kahoohooSecuencias = {
     fin_azul: "fin_jugador_azul",
     fin_amarillo: "fin_jugador_amarillo"
 }
-const kahoohooColores = [
+const kahootColores = [
     'azul',
     'amarillo',
     'blanco',
@@ -101,20 +101,20 @@ const kahoohooColores = [
     'naranja',
 ]
 
-function reiniciarKahoohooVariables() {
-    WEB_DATA.kahoohooEstado = 'waitingPlayers'
-    WEB_DATA.kahoohooTimeouts = {}
-    WEB_DATA.kahoohooInterval = {}
-    WEB_DATA.kahoohooInciado = false
-    WEB_DATA.kahoohooPreguntaIndex = 0
-    WEB_DATA.kahoohooPreguntasElegidas = obtenerPreguntasAleatorias(kahoohooPreguntasMax)
-    WEB_DATA.kahoohooJugadores = [
+function reiniciarKahootVariables() {
+    WEB_DATA.kahootEstado = 'waitingPlayers'
+    WEB_DATA.kahootTimeouts = {}
+    WEB_DATA.kahootInterval = {}
+    WEB_DATA.kahootInciado = false
+    WEB_DATA.kahootPreguntaIndex = 0
+    WEB_DATA.kahootPreguntasElegidas = obtenerPreguntasAleatorias(kahootPreguntasMax)
+    WEB_DATA.kahootJugadores = [
         {nombre: "aaaa", puntuacion: 2},
         {nombre: "bbbb", puntuacion: 3}
     ] // {nombre: string, puntuacion: int, color: string}
-    WEB_DATA.kahoohooJugadoresRespondido = []
+    WEB_DATA.kahootJugadoresRespondido = []
 }
-reiniciarKahoohooVariables()
+reiniciarKahootVariables()
 
 
 function now(){
@@ -899,106 +899,111 @@ app.post('/comentarios', async (req, res) => {
     }
   });
 
-app.get('/kahoohoo', async (req, res) => {
+app.get('/kahoot', async (req, res) => {
     let { jugador, nuevoJugador } = req.body
 
-    if (WEB_DATA.kahoohooEstado === '') { // No hay partida activa, se pone
+    if (WEB_DATA.kahootEstado === '') { // No hay partida activa, se pone
         WEB_DATA.cancionesCola.push('Kahoot Navideño (Uniros desde el apartado de JUEGOS)')
-        WEB_DATA.kahoohooEstado = 'queue'
-        //WEB_DATA.kahoohooInterval = setInterval(itervalKahoohoo(), 500)
-    } else if (WEB_DATA.kahoohooEstado === 'waitingPlayers' || WEB_DATA.cancionesCola.filter(cancion => cancion.includes('Kahoot')).length > 0) {
-        if (WEB_DATA.kahoohooJugadores.filter(jug => jug.nombre === jugador).length === 0) {
-            WEB_DATA.kahoohooJugadores.push({nombre: jugador, puntuacion: 0})
+        WEB_DATA.kahootEstado = 'queue'
+        //WEB_DATA.kahootInterval = setInterval(itervalKahoot(), 500)
+    } else if (WEB_DATA.kahootEstado === 'waitingPlayers' || WEB_DATA.cancionesCola.filter(cancion => cancion.includes('Kahoot')).length > 0) {
+        if (WEB_DATA.kahootJugadores.filter(jug => jug.nombre === jugador).length === 0) {
+            WEB_DATA.kahootJugadores.push({nombre: jugador, puntuacion: 0})
         } else if (nuevoJugador === true) {
             return res.status(409).json({error: "Ese nombre ya existe en la partida, por favor, selecciona otro nombre para jugar"})
         }
-        setKahoohooTimeout(jugador)
+        setKahootTimeout(jugador)
     }
 })
 
-function setKahoohooTimeout(jugador) {
-    clearTimeout(WEB_DATA.kahoohooTimeouts[jugador])
-    WEB_DATA.kahoohooTimeouts[jugador] = setTimeout(() => {
+function setKahootTimeout(jugador) {
+    clearTimeout(WEB_DATA.kahootTimeouts[jugador])
+    WEB_DATA.kahootTimeouts[jugador] = setTimeout(() => {
         // TODO: hacer intervalo para eliminar al jugador si tiene 10 segundos de inactividad y para parar la partida si este es el timeout del ultimo jugador
-        if (WEB_DATA.kahoohooEstado === 'queue' || WEB_DATA.kahoohooEstado === 'waitingPlayers')
-        WEB_DATA.kahoohooJugadores = WEB_DATA.kahoohooJugadores.filter(jug => jugador !== jug.nombre)
-        if (WEB_DATA.kahoohooJugadores.length <= 0) {
-            reiniciarKahoohooVariables()
+        if (WEB_DATA.kahootEstado === 'queue' || WEB_DATA.kahootEstado === 'waitingPlayers')
+        WEB_DATA.kahootJugadores = WEB_DATA.kahootJugadores.filter(jug => jugador !== jug.nombre)
+        if (WEB_DATA.kahootJugadores.length <= 0) {
+            reiniciarKahootVariables()
         }
     }, 10000)
 }
 
 
-app.post('/kahoohoo', async (req, res) => {
+app.post('/kahoot', async (req, res) => {
     let { jugador, respuesta } = req.body
 
-    WEB_DATA.kahoohooJugadores
+    WEB_DATA.kahootJugadores
 })
 
-app.get('/kahoohoo-inicio', async (req, res) => {
-    if (WEB_DATA.kahoohooEstado != 'waiting' && WEB_DATA.kahoohooEstado != 'waitingPlayers') {
+app.get('/kahoot-inicio', async (req, res) => {
+    if (WEB_DATA.kahootEstado != 'waiting' && WEB_DATA.kahootEstado != 'waitingPlayers') {
         return;
     }
-    WEB_DATA.kahoohooEstado = 'running'
-    encolarCancion(kahoohooSecuencias.inicio, PLAYLIST_KAHOOT)
-    WEB_DATA.kahoohooJugadores.forEach(async (jug, index) => {
-        jug.color = kahoohooColores[index]
+    WEB_DATA.kahootEstado = 'running'
+    encolarCancion(kahootSecuencias.inicio, PLAYLIST_KAHOOT)
+    WEB_DATA.kahootJugadores.forEach(async (jug, index) => {
+        jug.color = kahootColores[index]
         let secuenciaJugador = `inicio_${jug.color}`
         fs.writeFileSync(`${SHOW_PATH}/secuencias/kahoot/jugador_${jug.color}.txt`, jug.nombre)
-        renderizarEncolarKahoohoo(kahoohooSecuencias[secuenciaJugador])
+        renderizarEncolarKahoot(kahootSecuencias[secuenciaJugador])
     })
     
-    buclePreguntasKahoohoo()
+    buclePreguntasKahoot()
 })
 
-function buclePreguntasKahoohoo() {
-    if (kahoohooPreguntasMax <= WEB_DATA.kahoohooPreguntaIndex) { // If para finalizar el bucle y el show
-        encolarCancion(kahoohooSecuencias.fin, PLAYLIST_KAHOOT)
+function buclePreguntasKahoot() {
+    if (kahootPreguntasMax <= WEB_DATA.kahootPreguntaIndex) { // If para finalizar el bucle y el show
+        encolarCancion(kahootSecuencias.fin, PLAYLIST_KAHOOT)
 
         // Determinar la puntuación más alta
-        const maxPuntuacion = Math.max(...WEB_DATA.kahoohooJugadores.map(jugador => jugador.puntuacion));
+        const maxPuntuacion = Math.max(...WEB_DATA.kahootJugadores.map(jugador => jugador.puntuacion));
         // Filtrar los jugadores con la puntuación más alta
-        const ganadores = WEB_DATA.kahoohooJugadores.filter(jugador => jugador.puntuacion === maxPuntuacion);
+        const ganadores = WEB_DATA.kahootJugadores.filter(jugador => jugador.puntuacion === maxPuntuacion);
 
         ganadores.forEach(jug => {
             let secuenciaJugadorFin = `fin_${jug.color}`
-            renderizarEncolarKahoohoo(kahoohooSecuencias[secuenciaJugadorFin])       
+            renderizarEncolarKahoot(kahootSecuencias[secuenciaJugadorFin])
         })
-        WEB_DATA.kahoohooEstado = 'quit'
-        setTimeout(reiniciarKahoohooVariables, 10000)
+        WEB_DATA.kahootEstado = 'quit'
+        setTimeout(reiniciarKahootVariables, 10000)
         return
     }
 
-    let preguntaActual = WEB_DATA.kahoohooPreguntasElegidas[WEB_DATA.kahoohooPreguntaIndex]
+    let puntuacionesStr = ''
+    WEB_DATA.kahootJugadores.forEach(jug => puntuacionesStr += `${jug.nombre}: ${jug.puntuacion}\n`)
+    fs.writeFileSync(`${SHOW_PATH}/secuencias/kahoot/puntuaciones.txt`, puntuacionesStr)
+    renderizarEncolarKahoot(kahootSecuencias.cambio)
+    
+    let preguntaActual = WEB_DATA.kahootPreguntasElegidas[WEB_DATA.kahootPreguntaIndex]
     fs.writeFileSync(`${SHOW_PATH}/secuencias/kahoot/pregunta.txt`, preguntaActual.pregunta)
     preguntaActual.respuestas.forEach((respuesta, index) => {
         let letras = ['A','B','C','D']
         fs.writeFileSync(`${SHOW_PATH}/secuencias/kahoot/pregunta_${letras[index]}.txt`, respuesta)
     })
     fs.writeFileSync(`${SHOW_PATH}/secuencias/kahoot/pregunta_respuesta.txt`, preguntaActual.solucion)
-    renderizarEncolarKahoohoo(kahoohooSecuencias.pregunta)
+    renderizarEncolarKahoot(kahootSecuencias.pregunta)
 
-    WEB_DATA.kahoohooInterval = setInterval(async () => {
+    WEB_DATA.kahootInterval = setInterval(async () => {
         let secuenciaSonando = (await axios.get(URL_GET_PLAYING_STATUS)).data.step
-        if (secuenciaSonando === kahoohooSecuencias.pregunta) {
-            clearInterval(WEB_DATA.kahoohooInterval)
-            WEB_DATA.kahoohooEstado = 'waitingAnwers'
+        if (secuenciaSonando === kahootSecuencias.pregunta) {
+            clearInterval(WEB_DATA.kahootInterval)
+            WEB_DATA.kahootEstado = 'waitingAnwers'
             // Seteamos un Timeout de 10 segundos (tiempo para responder) para que renderize las puntuaciones y la siguiente pregunta
             setTimeout(() => {
-                WEB_DATA.kahoohooEstado = 'running'
-                WEB_DATA.kahoohooPreguntaIndex++
+                WEB_DATA.kahootEstado = 'running'
+                WEB_DATA.kahootPreguntaIndex++
 
                 let puntuacionesStr = ''
-                WEB_DATA.kahoohooJugadores.forEach(jug => puntuacionesStr += `${jug.nombre}: ${jug.puntuacion}\n`)
+                WEB_DATA.kahootJugadores.forEach(jug => puntuacionesStr += `${jug.nombre}: ${jug.puntuacion}\n`)
                 fs.writeFileSync(`${SHOW_PATH}/secuencias/kahoot/puntuaciones.txt`, puntuacionesStr)
-                renderizarEncolarKahoohoo(kahoohooSecuencias.cambio)
-                setTimeout(buclePreguntasKahoohoo, 5000)
+                renderizarEncolarKahoot(kahootSecuencias.cambio)
+                setTimeout(buclePreguntasKahoot, 5000)
             }, 10 * 1000)
         }
     }, 500)
 }
 
-function renderizarEncolarKahoohoo(secuencia) {
+function renderizarEncolarKahoot(secuencia) {
     renderizarCancion(`secuencias/kahoot/${secuencia}.fseq`)
     encolarCancion(secuencia, PLAYLIST_KAHOOT)    
 }
@@ -1076,8 +1081,8 @@ async function procesaColas() {
                             WEB_DATA.sonando = WEB_DATA.cancionesCola[0]
                             WEB_DATA.progreso = 0
                             WEB_DATA.cancionesColaParaWeb.shift()
-                            if (WEB_DATA.sonando.includes('Kahoot') && WEB_DATA.kahoohooEstado === 'queue') { 
-                                WEB_DATA.kahoohooEstado === 'waitingPlayers' 
+                            if (WEB_DATA.sonando.includes('Kahoot') && WEB_DATA.kahootEstado === 'queue') { 
+                                WEB_DATA.kahootEstado === 'waitingPlayers' 
                             }   
                         }
                     }
