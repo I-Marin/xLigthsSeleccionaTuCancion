@@ -70,7 +70,7 @@ WEB_DATA.simon_dice_record = {
     fecha: undefined
 }  // Se guarda el jugador y la puntuacion del record
 
-const kahoohooPreguntasMax = 10
+const kahoohooPreguntasMax = 2
 const kahoohooSecuencias = {
     // Inicio
     inicio: "inicio", // 13s
@@ -93,22 +93,28 @@ const kahoohooSecuencias = {
     fin_amarillo: "fin_jugador_amarillo"
 }
 const kahoohooColores = [
-    'Azul',
-    'Amarillo',
-    'Blanco',
-    'Magenta',
-    'Cyan',
-    'Naranja',
+    'azul',
+    'amarillo',
+    'blanco',
+    'magenta',
+    'cian',
+    'naranja',
 ]
 
-WEB_DATA.kahoohooEstado = ''
-WEB_DATA.kahoohooTimeouts = {}
-WEB_DATA.kahoohooInterval = {}
-WEB_DATA.kahoohooInciado = false
-WEB_DATA.kahoohooPreguntaIndex = 0
-WEB_DATA.kahoohooPreguntasElegidas = obtenerPreguntasAleatorias(kahoohooPreguntasMax)
-WEB_DATA.kahoohooJugadores = [] // {nombre: string, puntuacion: int, color: string}
-WEB_DATA.kahoohooJugadoresRespondido = []
+function reiniciarKahoohooVariables() {
+    WEB_DATA.kahoohooEstado = 'waitingPlayers'
+    WEB_DATA.kahoohooTimeouts = {}
+    WEB_DATA.kahoohooInterval = {}
+    WEB_DATA.kahoohooInciado = false
+    WEB_DATA.kahoohooPreguntaIndex = 0
+    WEB_DATA.kahoohooPreguntasElegidas = obtenerPreguntasAleatorias(kahoohooPreguntasMax)
+    WEB_DATA.kahoohooJugadores = [
+        {nombre: "aaaa", puntuacion: 2},
+        {nombre: "bbbb", puntuacion: 3}
+    ] // {nombre: string, puntuacion: int, color: string}
+    WEB_DATA.kahoohooJugadoresRespondido = []
+}
+reiniciarKahoohooVariables()
 
 
 function now(){
@@ -919,12 +925,9 @@ function setKahoohooTimeout(jugador) {
         if (WEB_DATA.kahoohooJugadores.length <= 0) {
             reiniciarKahoohooVariables()
         }
-    }, 10)
+    }, 10000)
 }
 
-function reiniciarKahoohooVariables() {
-
-}
 
 app.post('/kahoohoo', async (req, res) => {
     let { jugador, respuesta } = req.body
@@ -932,22 +935,25 @@ app.post('/kahoohoo', async (req, res) => {
     WEB_DATA.kahoohooJugadores
 })
 
-app.get('/kahoohoo-incio', async (req, res) => {
-    encolarCancion(kahoohooSecuencias.inicio)
+app.get('/kahoohoo-inicio', async (req, res) => {
+    if (WEB_DATA.kahoohooEstado != 'waiting' && WEB_DATA.kahoohooEstado != 'waitingPlayers') {
+        return;
+    }
+    WEB_DATA.kahoohooEstado = 'running'
+    encolarCancion(kahoohooSecuencias.inicio, PLAYLIST_KAHOOT)
     WEB_DATA.kahoohooJugadores.forEach(async (jug, index) => {
         jug.color = kahoohooColores[index]
         let secuenciaJugador = `inicio_${jug.color}`
-        fs.writeFileSync(`${SHOW_PATH}/kahoot/jugador_${jug.color}.txt`, jug.nombre)
-        renderizarEncololarKahoohoo(kahoohooSecuencias[secuenciaJugador])
+        fs.writeFileSync(`${SHOW_PATH}/secuencias/kahoot/jugador_${jug.color}.txt`, jug.nombre)
+        renderizarEncolarKahoohoo(kahoohooSecuencias[secuenciaJugador])
     })
-    WEB_DATA.kahoohooEstado = 'running'
-
+    
     buclePreguntasKahoohoo()
 })
 
 function buclePreguntasKahoohoo() {
-    if (kahoohooPreguntasMax >= WEB_DATA.kahoohooPreguntaIndex) { // If para finalizar el bucle y el show
-        encolarCancion(kahoohooSecuencias.fin)
+    if (kahoohooPreguntasMax <= WEB_DATA.kahoohooPreguntaIndex) { // If para finalizar el bucle y el show
+        encolarCancion(kahoohooSecuencias.fin, PLAYLIST_KAHOOT)
 
         // Determinar la puntuación más alta
         const maxPuntuacion = Math.max(...WEB_DATA.kahoohooJugadores.map(jugador => jugador.puntuacion));
@@ -956,22 +962,25 @@ function buclePreguntasKahoohoo() {
 
         ganadores.forEach(jug => {
             let secuenciaJugadorFin = `fin_${jug.color}`
-            renderizarEncololarKahoohoo(kahoohooSecuencias[secuenciaJugadorFin])       
+            renderizarEncolarKahoohoo(kahoohooSecuencias[secuenciaJugadorFin])       
         })
+        WEB_DATA.kahoohooEstado = 'quit'
+        setTimeout(reiniciarKahoohooVariables, 10000)
         return
     }
 
     let preguntaActual = WEB_DATA.kahoohooPreguntasElegidas[WEB_DATA.kahoohooPreguntaIndex]
-    fs.writeFileSync(`${SHOW_PATH}/kahoot/pregunta.txt`, preguntaActual.pregunta)
+    fs.writeFileSync(`${SHOW_PATH}/secuencias/kahoot/pregunta.txt`, preguntaActual.pregunta)
     preguntaActual.respuestas.forEach((respuesta, index) => {
-        fs.writeFileSync(`${SHOW_PATH}/kahoot/respuesta_${index+1}.txt`, respuesta)
+        let letras = ['A','B','C','D']
+        fs.writeFileSync(`${SHOW_PATH}/secuencias/kahoot/pregunta_${letras[index]}.txt`, respuesta)
     })
-    fs.writeFileSync(`${SHOW_PATH}/kahoot/solucion.txt`, preguntaActual.solucion)
-    renderizarEncololarKahoohoo(kahoohooSecuencias.pregunta)
+    fs.writeFileSync(`${SHOW_PATH}/secuencias/kahoot/pregunta_respuesta.txt`, preguntaActual.solucion)
+    renderizarEncolarKahoohoo(kahoohooSecuencias.pregunta)
 
     WEB_DATA.kahoohooInterval = setInterval(async () => {
         let secuenciaSonando = (await axios.get(URL_GET_PLAYING_STATUS)).data.step
-        if (secuenciaSonando = kahoohooSecuencias.pregunta) {
+        if (secuenciaSonando === kahoohooSecuencias.pregunta) {
             clearInterval(WEB_DATA.kahoohooInterval)
             WEB_DATA.kahoohooEstado = 'waitingAnwers'
             // Seteamos un Timeout de 10 segundos (tiempo para responder) para que renderize las puntuaciones y la siguiente pregunta
@@ -981,16 +990,16 @@ function buclePreguntasKahoohoo() {
 
                 let puntuacionesStr = ''
                 WEB_DATA.kahoohooJugadores.forEach(jug => puntuacionesStr += `${jug.nombre}: ${jug.puntuacion}\n`)
-                fs.writeFileSync(`${SHOW_PATH}/kahoot/puntuaciones.txt`, puntuacionesStr)
-                renderizarEncololarKahoohoo(kahoohooSecuencias.cambio)
-                buclePreguntasKahoohoo()
+                fs.writeFileSync(`${SHOW_PATH}/secuencias/kahoot/puntuaciones.txt`, puntuacionesStr)
+                renderizarEncolarKahoohoo(kahoohooSecuencias.cambio)
+                setTimeout(buclePreguntasKahoohoo, 5000)
             }, 10 * 1000)
         }
     }, 500)
 }
 
-function renderizarEncololarKahoohoo(secuencia) {
-    renderizarCancion(`secuencias/kahoohoo/${secuencia}`)
+function renderizarEncolarKahoohoo(secuencia) {
+    renderizarCancion(`secuencias/kahoot/${secuencia}.fseq`)
     encolarCancion(secuencia, PLAYLIST_KAHOOT)    
 }
 
@@ -1067,7 +1076,7 @@ async function procesaColas() {
                             WEB_DATA.sonando = WEB_DATA.cancionesCola[0]
                             WEB_DATA.progreso = 0
                             WEB_DATA.cancionesColaParaWeb.shift()
-                            if (WEB_DATA.sonando.includes('Kahoot') && WEB_DATA.kahoohooEstado === queue) { 
+                            if (WEB_DATA.sonando.includes('Kahoot') && WEB_DATA.kahoohooEstado === 'queue') { 
                                 WEB_DATA.kahoohooEstado === 'waitingPlayers' 
                             }   
                         }

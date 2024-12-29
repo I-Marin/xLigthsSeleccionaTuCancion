@@ -5,7 +5,7 @@ const constants = {
     PLAYLIST_ANIMACIONES: `ANIMATIONS`,
     PLAYLIST_OTRAS: `OTRAS`,
     PLAYLIST_SIMON: `simon_playlist`,
-    PLAYLIST_KAHOOT: `KAHOOT`,
+    PLAYLIST_KAHOOT: `kahoot_playlist`,
     URL_GET_QUEUED_STEPS: `http://${BASE_URL()}/xScheduleQuery?Query=GetQueuedSteps`,
     URL_GET_PLAYING_STATUS: `http://${BASE_URL()}/xScheduleQuery?Query=GetPlayingStatus`,
     URL_CLEAR_BACKGROUND: `http://${BASE_URL()}/xScheduleCommand?Command=Clear background playlist`,
