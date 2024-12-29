@@ -11,6 +11,7 @@ const {
     PLAYLIST_CANCIONES,
     PLAYLIST_ANIMACIONES,
     PLAYLIST_SIMON,
+    PLAYLIST_KAHOOT,
     PLAYLIST_OTRAS,
     URL_GET_QUEUED_STEPS,
     URL_GET_PLAYING_STATUS,
@@ -35,6 +36,7 @@ const {
 
 const BASE_URL = require('./baseUrl')
 const esInapropiadoZPK = require('./ZPKModerator'); // Importar la función desde ZPKModerator.js
+const obtenerPreguntasAleatorias = require('./kahoohoo_preguntas')
 
 WEB_DATA = {}
 
@@ -67,6 +69,46 @@ WEB_DATA.simon_dice_record = {
     aciertos: undefined,
     fecha: undefined
 }  // Se guarda el jugador y la puntuacion del record
+
+const kahoohooPreguntasMax = 10
+const kahoohooSecuencias = {
+    // Inicio
+    inicio: "inicio", // 13s
+    inicio_naranja: "inicio_jugador_naranja", // 6s
+    inicio_magenta: "inicio_jugador_magenta",
+    inicio_cian: "inicio_jugador_cian",
+    inicio_blanco: "inicio_jugador_blanco",
+    inicio_azul: "inicio_jugador_azul",
+    inicio_amarillo: "inicio_jugador_amarillo",
+    // Preguntas
+    pregunta: "pregunta", // 12s
+    cambio: "cambio",
+    // Final
+    fin: "fin",
+    fin_naranja: "fin_jugador_naranja",
+    fin_magenta: "fin_jugador_magenta",
+    fin_cian: "fin_jugador_cian",
+    fin_blanco: "fin_jugador_blanco",
+    fin_azul: "fin_jugador_azul",
+    fin_amarillo: "fin_jugador_amarillo"
+}
+const kahoohooColores = [
+    'Azul',
+    'Amarillo',
+    'Blanco',
+    'Magenta',
+    'Cyan',
+    'Naranja',
+]
+
+WEB_DATA.kahoohooEstado = ''
+WEB_DATA.kahoohooTimeouts = {}
+WEB_DATA.kahoohooInterval = {}
+WEB_DATA.kahoohooInciado = false
+WEB_DATA.kahoohooPreguntaIndex = 0
+WEB_DATA.kahoohooPreguntasElegidas = obtenerPreguntasAleatorias(kahoohooPreguntasMax)
+WEB_DATA.kahoohooJugadores = [] // {nombre: string, puntuacion: int, color: string}
+WEB_DATA.kahoohooJugadoresRespondido = []
 
 
 function now(){
@@ -137,7 +179,6 @@ app.get('/siguiente', (req, res) => {
 )
 
 app.get('/canciones', (req, res) => {
-    throw new Error('Error de prueba para los logs')
     return res.json(
         {
             cancionesCola: WEB_DATA.cancionesColaParaWeb,
@@ -149,51 +190,6 @@ app.get('/canciones', (req, res) => {
             progreso: WEB_DATA.progreso,
         }
     )
-
-
-    axios.get(URL_GET_QUEUED_STEPS)
-        .then(resData => {
-            axios.get(URL_GET_PLAYING_STATUS)
-                .then(resData2 => {
-                    if (resData2.data.status == 'idle') {
-                        WEB_DATA.sonando = ''
-                        WEB_DATA.progreso = 100
-                    }
-                    else {
-                        WEB_DATA.sonando = '    ' + resData2.data.step + ' ' + resData2.data.left.substring(0, resData2.data.left.indexOf('.', 0))
-                        WEB_DATA.progreso = ~~(resData2.data.positionms / resData2.data.lengthms * 100)
-                    }
-                    if (WEB_DATA.sonando.includes('simon_dice_')) {
-                        WEB_DATA.sonando = ''
-                        WEB_DATA.progreso = 0
-                    }
-
-
-                    WEB_DATA.lengthms = 0
-                    resData.data.steps.forEach(element => {
-                        WEB_DATA.lengthms = WEB_DATA.lengthms + parseInt(element.lengthms)
-                    });
-
-                    //WEB_DATA.cancionesCola = resData.data.steps.map(step => step.name)
-                    WEB_DATA.cancionesSeleccionables = WEB_DATA.canciones.filter(can => !WEB_DATA.cancionesCola.includes(can))
-                    WEB_DATA.cancionesSeleccionables = WEB_DATA.cancionesSeleccionables.filter(can => !WEB_DATA.cancionesEnProceso.includes(can))
-                    WEB_DATA.cancionesCola = WEB_DATA.cancionesCola.filter(can => !(can == resData2.data.step))
-
-                    WEB_DATA.cancionesColaParaWeb = Array.from(WEB_DATA.cancionesCola)
-                    if (WEB_DATA.cancionesCola.length > 0) {
-                        if (WEB_DATA.cancionesCola[0].includes("Simon dice ") && WEB_DATA.sonando == '') {
-                            // Hay un simon dice jugando
-                            WEB_DATA.sonando = WEB_DATA.cancionesCola[0]
-                            WEB_DATA.progreso = 0
-                            WEB_DATA.cancionesColaParaWeb.shift()
-                        }
-                    }
-
-
-                })
-                .catch(err => { console.log(now() + ' ' + err) })
-        })
-        .catch(err => { })
 })
 
 
@@ -202,7 +198,7 @@ app.get('/simon', (req, res) => {
     try {
         var { jugador, nuevaPartida } = req.query
         var partidaString = 'Simon dice ' + jugador
-        var index = WEB_DATA.cancionesCola.indexOf(partidaString) // Buscamos el index en el que esta el simon del usuario
+        var index = WEB_DATA.cancionesCola.indexOf(partidaString) // Buscamos el index en el que esta el simon del usuario-
 
         if (index !== -1 && nuevaPartida === "true") {
             return res.status(500).json({ error: 'Ese nombre de jugador ya tiene una partida abierta, por favor seleccione otro nombre de usuario' })
@@ -427,7 +423,7 @@ app.post('/canciones', async (req, res) => {
     }
 
     WEB_DATA.cancionesCola.push(cancion) // Metemos la cancion en cola para que se muestre en la web
-    if (WEB_DATA.cancionesCola.filter(elemCola => elemCola.includes('Simon dice ')).length > 0) {
+    if (WEB_DATA.cancionesCola.filter(elemCola => elemCola.includes('Simon dice ')).length > 0 || WEB_DATA.cancionesCola.filter(elemCola => elemCola.includes('Kahoot')).length > 0) {
         WEB_DATA.colaInterna.push(req) // Metemos el object de la peticion para hacerla cuando no haya simones en cola
         return
     }
@@ -439,7 +435,7 @@ app.post('/canciones', async (req, res) => {
             return res.json({
                 success: false,
                 message: 'Ya hay un mensaje del dia en espera.',
-                });
+            });
         } else {
             encolarCancionMensajeDelDiaPost(req)
         }
@@ -897,6 +893,106 @@ app.post('/comentarios', async (req, res) => {
     }
   });
 
+app.get('/kahoohoo', async (req, res) => {
+    let { jugador, nuevoJugador } = req.body
+
+    if (WEB_DATA.kahoohooEstado === '') { // No hay partida activa, se pone
+        WEB_DATA.cancionesCola.push('Kahoot Navideño (Uniros desde el apartado de JUEGOS)')
+        WEB_DATA.kahoohooEstado = 'queue'
+        //WEB_DATA.kahoohooInterval = setInterval(itervalKahoohoo(), 500)
+    } else if (WEB_DATA.kahoohooEstado === 'waitingPlayers' || WEB_DATA.cancionesCola.filter(cancion => cancion.includes('Kahoot')).length > 0) {
+        if (WEB_DATA.kahoohooJugadores.filter(jug => jug.nombre === jugador).length === 0) {
+            WEB_DATA.kahoohooJugadores.push({nombre: jugador, puntuacion: 0})
+        } else if (nuevoJugador === true) {
+            return res.status(409).json({error: "Ese nombre ya existe en la partida, por favor, selecciona otro nombre para jugar"})
+        }
+        setKahoohooTimeout(jugador)
+    }
+})
+
+function setKahoohooTimeout(jugador) {
+    clearTimeout(WEB_DATA.kahoohooTimeouts[jugador])
+    WEB_DATA.kahoohooTimeouts[jugador] = setTimeout(() => {
+        // TODO: hacer intervalo para eliminar al jugador si tiene 10 segundos de inactividad y para parar la partida si este es el timeout del ultimo jugador
+        if (WEB_DATA.kahoohooEstado === 'queue' || WEB_DATA.kahoohooEstado === 'waitingPlayers')
+        WEB_DATA.kahoohooJugadores = WEB_DATA.kahoohooJugadores.filter(jug => jugador !== jug.nombre)
+        if (WEB_DATA.kahoohooJugadores.length <= 0) {
+            reiniciarKahoohooVariables()
+        }
+    }, 10)
+}
+
+function reiniciarKahoohooVariables() {
+
+}
+
+app.post('/kahoohoo', async (req, res) => {
+    let { jugador, respuesta } = req.body
+
+    WEB_DATA.kahoohooJugadores
+})
+
+app.get('/kahoohoo-incio', async (req, res) => {
+    encolarCancion(kahoohooSecuencias.inicio)
+    WEB_DATA.kahoohooJugadores.forEach(async (jug, index) => {
+        jug.color = kahoohooColores[index]
+        let secuenciaJugador = `inicio_${jug.color}`
+        fs.writeFileSync(`${SHOW_PATH}/kahoot/jugador_${jug.color}.txt`, jug.nombre)
+        renderizarEncololarKahoohoo(kahoohooSecuencias[secuenciaJugador])
+    })
+    WEB_DATA.kahoohooEstado = 'running'
+
+    buclePreguntasKahoohoo()
+})
+
+function buclePreguntasKahoohoo() {
+    if (kahoohooPreguntasMax >= WEB_DATA.kahoohooPreguntaIndex) { // If para finalizar el bucle y el show
+        encolarCancion(kahoohooSecuencias.fin)
+
+        // Determinar la puntuación más alta
+        const maxPuntuacion = Math.max(...WEB_DATA.kahoohooJugadores.map(jugador => jugador.puntuacion));
+        // Filtrar los jugadores con la puntuación más alta
+        const ganadores = WEB_DATA.kahoohooJugadores.filter(jugador => jugador.puntuacion === maxPuntuacion);
+
+        ganadores.forEach(jug => {
+            let secuenciaJugadorFin = `fin_${jug.color}`
+            renderizarEncololarKahoohoo(kahoohooSecuencias[secuenciaJugadorFin])       
+        })
+        return
+    }
+
+    let preguntaActual = WEB_DATA.kahoohooPreguntasElegidas[WEB_DATA.kahoohooPreguntaIndex]
+    fs.writeFileSync(`${SHOW_PATH}/kahoot/pregunta.txt`, preguntaActual.pregunta)
+    preguntaActual.respuestas.forEach((respuesta, index) => {
+        fs.writeFileSync(`${SHOW_PATH}/kahoot/respuesta_${index+1}.txt`, respuesta)
+    })
+    fs.writeFileSync(`${SHOW_PATH}/kahoot/solucion.txt`, preguntaActual.solucion)
+    renderizarEncololarKahoohoo(kahoohooSecuencias.pregunta)
+
+    WEB_DATA.kahoohooInterval = setInterval(async () => {
+        let secuenciaSonando = (await axios.get(URL_GET_PLAYING_STATUS)).data.step
+        if (secuenciaSonando = kahoohooSecuencias.pregunta) {
+            clearInterval(WEB_DATA.kahoohooInterval)
+            WEB_DATA.kahoohooEstado = 'waitingAnwers'
+            // Seteamos un Timeout de 10 segundos (tiempo para responder) para que renderize las puntuaciones y la siguiente pregunta
+            setTimeout(() => {
+                WEB_DATA.kahoohooEstado = 'running'
+                WEB_DATA.kahoohooPreguntaIndex++
+
+                let puntuacionesStr = ''
+                WEB_DATA.kahoohooJugadores.forEach(jug => puntuacionesStr += `${jug.nombre}: ${jug.puntuacion}\n`)
+                fs.writeFileSync(`${SHOW_PATH}/kahoot/puntuaciones.txt`, puntuacionesStr)
+                renderizarEncololarKahoohoo(kahoohooSecuencias.cambio)
+                buclePreguntasKahoohoo()
+            }, 10 * 1000)
+        }
+    }, 500)
+}
+
+function renderizarEncololarKahoohoo(secuencia) {
+    renderizarCancion(`secuencias/kahoohoo/${secuencia}`)
+    encolarCancion(secuencia, PLAYLIST_KAHOOT)    
+}
 
 // Temporizador para poner ANIMACIONES
 function startBackground() {
@@ -966,11 +1062,14 @@ async function procesaColas() {
                     WEB_DATA.cancionesColaParaWeb = Array.from(WEB_DATA.cancionesCola)
                     if (WEB_DATA.cancionesCola.length > 0) {
 
-                        if (WEB_DATA.cancionesCola[0].includes("Simon dice ") && WEB_DATA.sonando == '') {
+                        if ((WEB_DATA.cancionesCola[0].includes("Simon dice ") || WEB_DATA.cancionesCola[0].includes("Kahoot")) && WEB_DATA.sonando == '') {
                             // Hay un simon dice jugando
                             WEB_DATA.sonando = WEB_DATA.cancionesCola[0]
                             WEB_DATA.progreso = 0
                             WEB_DATA.cancionesColaParaWeb.shift()
+                            if (WEB_DATA.sonando.includes('Kahoot') && WEB_DATA.kahoohooEstado === queue) { 
+                                WEB_DATA.kahoohooEstado === 'waitingPlayers' 
+                            }   
                         }
                     }
                 })
