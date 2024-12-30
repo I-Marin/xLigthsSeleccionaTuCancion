@@ -1,128 +1,128 @@
 const PREGUNTAS = [
     {
-        pregunta: "¿En qué país se originó la tradición del árbol de Navidad?",
-        respuestas: ["Italia", "Alemania", "Francia", "Inglaterra"],
-        solucion: "Alemania"
+        pregunta: "¿EN QUÉ PAÍS SE ORIGINÓ LA TRADICIÓN DEL ÁRBOL DE NAVIDAD?",
+        respuestas: ["ITALIA", "ALEMANIA", "FRANCIA", "INGLATERRA"],
+        solucion: "ALEMANIA"
     },
     {
-        pregunta: "¿Qué se celebra el 25 de diciembre?",
-        respuestas: ["La llegada de los Reyes Magos", "La Anunciación", "El nacimiento de Jesús", "La Pascua"],
-        solucion: "El nacimiento de Jesús"
+        pregunta: "¿QUÉ SE CELEBRA EL 25 DE DICIEMBRE?",
+        respuestas: ["LOS REYES MAGOS", "LA ANUNCIACIÓN", "NACIMIENTO DE JESÚS", "LA PASCUA"],
+        solucion: "NACIMIENTO DE JESÚS"
     },
     {
-        pregunta: "¿Cómo se llama el villancico que empieza con 'Noche de paz'?",
-        respuestas: ["Jingle Bells", "Silent Night", "White Christmas", "O Holy Night"],
-        solucion: "Silent Night"
+        pregunta: "¿CÓMO SE LLAMA EN INGLÉS EL VILLANCICO QUE EMPIEZA CON 'NOCHE DE PAZ'?",
+        respuestas: ["JINGLE BELLS", "SILENT NIGHT", "WHITE CHRISTMAS", "O HOLY NIGHT"],
+        solucion: "SILENT NIGHT"
     },
     {
-        pregunta: "¿Qué país es famoso por enviar árboles de Navidad al Reino Unido como símbolo de amistad?",
-        respuestas: ["Canadá", "Noruega", "Suecia", "Dinamarca"],
-        solucion: "Noruega"
+        pregunta: "¿QUÉ PAÍS ES FAMOSO POR ENVIAR ÁRBOLES DE NAVIDAD AL REINO UNIDO COMO SÍMBOLO DE AMISTAD?",
+        respuestas: ["CANADÁ", "NORUEGA", "SUECIA", "DINAMARCA"],
+        solucion: "NORUEGA"
     },
     {
-        pregunta: "¿Qué festividad sigue inmediatamente después de la Navidad en el calendario cristiano?",
-        respuestas: ["La Epifanía", "Año Nuevo", "El Día de San Esteban", "La Cuaresma"],
-        solucion: "El Día de San Esteban"
+        pregunta: "¿QUÉ FESTIVIDAD SIGUE INMEDIATAMENTE DESPUÉS DE LA NAVIDAD EN EL CALENDARIO CRISTIANO?",
+        respuestas: ["LA EPIFANÍA", "AÑO NUEVO", "SAN ESTEBAN", "LA CUARESMA"],
+        solucion: "SAN ESTEBAN"
     },
     {
-        pregunta: "¿Qué figura trae regalos a los niños en España el 6 de enero?",
-        respuestas: ["Papá Noel", "El Olentzero", "Los Reyes Magos", "San Nicolás"],
-        solucion: "Los Reyes Magos"
+        pregunta: "¿QUÉ FIGURA TRAE REGALOS A LOS NIÑOS EN ESPAÑA EL 6 DE ENERO?",
+        respuestas: ["PAPÁ NOEL", "OLENTZERO", "LOS REYES MAGOS", "SAN NICOLÁS"],
+        solucion: "LOS REYES MAGOS"
     },
     {
-        pregunta: "¿En qué país comenzó la tradición de Papá Noel vestido de rojo?",
-        respuestas: ["Francia", "Estados Unidos", "Finlandia", "Holanda"],
-        solucion: "Estados Unidos"
+        pregunta: "¿EN QUÉ PAÍS COMENZÓ LA TRADICIÓN DE PAPÁ NOEL VESTIDO DE ROJO?",
+        respuestas: ["FRANCIA", "ESTADOS UNIDOS", "FINLANDIA", "HOLANDA"],
+        solucion: "ESTADOS UNIDOS"
     },
     {
-        pregunta: "¿Qué dulce se come tradicionalmente en Italia durante la Navidad?",
-        respuestas: ["Roscón de Reyes", "Panettone", "Mazapán", "Pestiños"],
-        solucion: "Panettone"
+        pregunta: "¿QUÉ DULCE SE COME TRADICIONALMENTE EN ITALIA DURANTE LA NAVIDAD?",
+        respuestas: ["ROSCÓN DE REYES", "PANETTONE", "MAZAPÁN", "PESTIÑOS"],
+        solucion: "PANETTONE"
     },
     {
-        pregunta: "¿Qué significa la palabra 'adviento'?",
-        respuestas: ["Esperanza", "Llegada", "Fiesta", "Milagro"],
-        solucion: "Llegada"
+        pregunta: "¿QUÉ SIGNIFICA LA PALABRA 'ADVIENTO'?",
+        respuestas: ["ESPERANZA", "LLEGADA", "FIESTA", "MILAGRO"],
+        solucion: "LLEGADA"
     },
     {
-        pregunta: "¿Qué animal llevó a María a Belén según la tradición popular?",
-        respuestas: ["Un camello", "Un burro", "Un caballo", "Una mula"],
-        solucion: "Un burro"
+        pregunta: "¿QUÉ ANIMAL LLEVÓ A MARÍA A BELÉN SEGÚN LA TRADICIÓN POPULAR?",
+        respuestas: ["UN CAMELLO", "UN BURRO", "UN CABALLO", "UNA MULA"],
+        solucion: "UN BURRO"
     },
     {
-        pregunta: "¿En qué país se celebra el 'Día de las Velitas' el 7 de diciembre?",
-        respuestas: ["Venezuela", "México", "Colombia", "Perú"],
-        solucion: "Colombia"
+        pregunta: "¿EN QUÉ PAÍS SE CELEBRA EL 'DÍA DE LAS VELITAS' EL 7 DE DICIEMBRE?",
+        respuestas: ["VENEZUELA", "MÉXICO", "COLOMBIA", "PERÚ"],
+        solucion: "COLOMBIA"
     },
     {
-        pregunta: "¿Cuál es el nombre del festival judío que coincide con la temporada navideña?",
-        respuestas: ["Rosh Hashaná", "Hanukkah", "Yom Kipur", "Pesaj"],
-        solucion: "Hanukkah"
+        pregunta: "¿CUÁL ES EL NOMBRE DEL FESTIVAL JUDÍO QUE COINCIDE CON LA TEMPORADA NAVIDEÑA?",
+        respuestas: ["ROSH HASHANÁ", "HANUKKAH", "YOM KIPUR", "PESAJ"],
+        solucion: "HANUKKAH"
     },
     {
-        pregunta: "¿Qué personaje navideño se llama 'Ded Moroz' en Rusia?",
-        respuestas: ["San Nicolás", "Papá Noel", "El Niño Jesús", "El Hombre de Nieve"],
-        solucion: "Papá Noel"
+        pregunta: "¿QUÉ PERSONAJE NAVIDEÑO SE LLAMA 'DED MOROZ' EN RUSIA?",
+        respuestas: ["SAN NICOLÁS", "PAPÁ NOEL", "EL NIÑO JESÚS", "EL HOMBRE DE NIEVE"],
+        solucion: "PAPÁ NOEL"
     },
     {
-        pregunta: "¿Qué flor se asocia tradicionalmente con la Navidad?",
-        respuestas: ["Rosa", "Flor de Pascua", "Margarita", "Tulipán"],
-        solucion: "Flor de Pascua"
+        pregunta: "¿QUÉ FLOR SE ASOCIA TRADICIONALMENTE CON LA NAVIDAD?",
+        respuestas: ["ROSA", "FLOR DE PASCUA", "MARGARITA", "TULIPÁN"],
+        solucion: "FLOR DE PASCUA"
     },
     {
-        pregunta: "¿Quién escribió 'Cuento de Navidad'?",
-        respuestas: ["Mark Twain", "Charles Dickens", "Jane Austen", "Victor Hugo"],
-        solucion: "Charles Dickens"
+        pregunta: "¿QUIÉN ESCRIBIÓ 'CUENTO DE NAVIDAD'?",
+        respuestas: ["MARK TWAIN", "CHARLES DICKENS", "JANE AUSTEN", "VICTOR HUGO"],
+        solucion: "CHARLES DICKENS"
     },
     {
-        pregunta: "¿Cómo se llama el bastón dulce que se cuelga en los árboles de Navidad?",
-        respuestas: ["Bastón de caramelo", "Bastón de jengibre", "Bastón de azúcar", "Bastón de menta"],
-        solucion: "Bastón de caramelo"
+        pregunta: "¿CÓMO SE LLAMA EL BASTÓN DULCE QUE SE CUELGA EN LOS ÁRBOLES DE NAVIDAD?",
+        respuestas: ["BASTÓN DE CARAMELO", "BASTÓN DE JENGIBRE", "BASTÓN DE AZÚCAR", "BASTÓN DE MENTA"],
+        solucion: "BASTÓN DE CARAMELO"
     },
     {
-        pregunta: "¿Qué ángel anunció a María que sería madre de Jesús?",
-        respuestas: ["Miguel", "Gabriel", "Rafael", "Uriel"],
-        solucion: "Gabriel"
+        pregunta: "¿QUÉ ÁNGEL ANUNCIÓ A MARÍA QUE SERÍA MADRE DE JESÚS?",
+        respuestas: ["MIGUEL", "GABRIEL", "RAFAEL", "URIEL"],
+        solucion: "GABRIEL"
     },
     {
-        pregunta: "¿En qué país se originaron los villancicos?",
-        respuestas: ["Inglaterra", "España", "Alemania", "Francia"],
-        solucion: "Inglaterra"
+        pregunta: "¿EN QUÉ PAÍS SE ORIGINARON LOS VILLANCICOS?",
+        respuestas: ["INGLATERRA", "ESPAÑA", "ALEMANIA", "FRANCIA"],
+        solucion: "INGLATERRA"
     },
     {
-        pregunta: "¿Qué animal aparece en el pesebre junto al Niño Jesús según la tradición?",
-        respuestas: ["Gallo", "Buey", "Caballo", "Zorro"],
-        solucion: "Buey"
+        pregunta: "¿QUÉ ANIMAL APARECE EN EL PESEBRE JUNTO AL NIÑO JESÚS SEGÚN LA TRADICIÓN?",
+        respuestas: ["GALLO", "BUEY", "CABALLO", "ZORRO"],
+        solucion: "BUEY"
     },
     {
-        pregunta: "¿En qué año se estrenó la película 'Solo en casa'?",
+        pregunta: "¿EN QUÉ AÑO SE ESTRENÓ LA PELÍCULA 'SOLO EN CASA'?",
         respuestas: ["1990", "1989", "1991", "1988"],
         solucion: "1990"
     },
     {
-        pregunta: "¿Qué país introdujo el villancico 'Noche de Paz' al mundo?",
-        respuestas: ["Austria", "Alemania", "Suiza", "Italia"],
-        solucion: "Austria"
+        pregunta: "¿QUÉ PAÍS INTRODUJO EL VILLANCICO 'NOCHE DE PAZ' AL MUNDO?",
+        respuestas: ["AUSTRIA", "ALEMANIA", "SUIZA", "ITALIA"],
+        solucion: "AUSTRIA"
     },
     {
-        pregunta: "¿Qué planta se considera un símbolo de la Navidad y es popular para decorar?",
-        respuestas: ["Acebo", "Hiedra", "Muérdago", "Pino"],
-        solucion: "Muérdago"
+        pregunta: "¿QUÉ PLANTA SE CONSIDERA UN SÍMBOLO DE LA NAVIDAD Y ES POPULAR PARA DECORAR?",
+        respuestas: ["ACEBO", "HIEDRA", "MUÉRDAGO", "PINO"],
+        solucion: "MUÉRDAGO"
     },
     {
-        pregunta: "¿Cómo se dice 'Feliz Navidad' en alemán?",
-        respuestas: ["Merry Christmas", "Joyeux Noël", "Fröhliche Weihnachten", "Buon Natale"],
-        solucion: "Fröhliche Weihnachten"
+        pregunta: "¿CÓMO SE DICE 'FELIZ NAVIDAD' EN ALEMÁN?",
+        respuestas: ["MERRY CHRISTMAS", "JOYEUX NOËL", "FRÖHLICHE WEIHNACHTEN", "BUON NATALE"],
+        solucion: "FRÖHLICHE WEIHNACHTEN"
     },
     {
-        pregunta: "¿Qué comida se considera tradicional en Inglaterra para el día de Navidad?",
-        respuestas: ["Pavo asado", "Jamón glaseado", "Pollo", "Lomo de cerdo"],
-        solucion: "Pavo asado"
+        pregunta: "¿QUÉ COMIDA SE CONSIDERA TRADICIONAL EN INGLATERRA PARA EL DÍA DE NAVIDAD?",
+        respuestas: ["PAVO ASADO", "JAMÓN GLASEADO", "POLLO", "LOMO DE CERDO"],
+        solucion: "PAVO ASADO"
     },
     {
-        pregunta: "¿Qué maratón de películas es popular durante la Navidad?",
-        respuestas: ["Harry Potter", "Star Wars", "Solo en casa", "El Señor de los Anillos"],
-        solucion: "Solo en casa"
+        pregunta: "¿QUÉ MARATÓN DE PELÍCULAS ES POPULAR DURANTE LA NAVIDAD?",
+        respuestas: ["HARRY POTTER", "STAR WARS", "SOLO EN CASA", "EL SEÑOR DE LOS ANILLOS"],
+        solucion: "SOLO EN CASA"
     }
 ];
 
@@ -149,5 +149,5 @@ function obtenerPreguntasAleatorias(numeroPreguntas) {
     console.log({preguntasSeleccionadas})
     return preguntasSeleccionadas;
 }
-obtenerPreguntasAleatorias(10)
+
 module.exports = obtenerPreguntasAleatorias;

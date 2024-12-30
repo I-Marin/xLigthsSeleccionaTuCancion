@@ -19,79 +19,79 @@ const textInput = document.getElementById('textInput')
 const submitBtn = document.getElementById('submitBtn')
 
 // Función para abrir el modal y desactivar el scroll
-openDialogBtn.addEventListener('click', () => {
-    dialog.showModal();
-    document.body.classList.add('no-scroll');// Desactiva el scroll
-})
+//openDialogBtn.addEventListener('click', () => {
+//    dialog.showModal();
+//    document.body.classList.add('no-scroll');// Desactiva el scroll
+//})
 
 // Función para cerrar el modal y reactivar el scroll
-closeDialogBtn.addEventListener('click', closeDialog);
-dialog.addEventListener('click', (e) => {
-    if (e.target === dialog) {
-        closeDialog();
-    }
-});
-
-// Cerrar el modal al hacer clic fuera del contenido
-dialog.addEventListener('click', (e) => {
-    if (e.target === dialog) {
-        closeDialog();
-    }
-})
-
-// Mostrar vista previa de la imagen seleccionada
-fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0]
-    if (file) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-            cameraPreview.src = e.target.result
-            cameraPreview.style.display = 'block' 
-        }
-        reader.readAsDataURL(file)
-    }
-})
+//closeDialogBtn.addEventListener('click', closeDialog);
+//dialog.addEventListener('click', (e) => {
+//    if (e.target === dialog) {
+//        closeDialog();
+//    }
+//});
+//
+//// Cerrar el modal al hacer clic fuera del contenido
+//dialog.addEventListener('click', (e) => {
+//    if (e.target === dialog) {
+//        closeDialog();
+//    }
+//})
+//
+//// Mostrar vista previa de la imagen seleccionada
+//fileInput.addEventListener('change', (e) => {
+//    const file = e.target.files[0]
+//    if (file) {
+//        const reader = new FileReader()
+//        reader.onload = (e) => {
+//            cameraPreview.src = e.target.result
+//            cameraPreview.style.display = 'block' 
+//        }
+//        reader.readAsDataURL(file)
+//    }
+//})
 
 // Evento de enviar (simple alerta por ahora)
-submitBtn.addEventListener('click', () => {
-    alert('¡Mensaje enviado!')
-    // Añadimos la canción a la cola
-    var url = URL_CANCIONES,
-    params = {
-        method: 'POST',
-        mode: 'cors',
-        body: JSON.stringify({
-            cancion: "Noche de paz",
-            dedicatoria: textInput.value,
-            imagen: cameraPreview.src
-        }),
-        headers: { 'Content-Type': 'application/json' },
-    }
-
-    var request = new Request(url, params)
-    var resp_aux
-
-    fetch(request)
-        .then(res => resp_aux = res.clone())
-        .then(res => res.json())
-        .then(res => {
-            console.log('Cancion puesta a la cola')
-        })
-        .catch(err => console.log(err))
-
-    closeDialog()
-    document.body.classList.remove('no-scroll')
-})
-
-
-// Función para cerrar el modal
-function closeDialog() {
-    dialog.close();
-    document.body.classList.remove('no-scroll'); // Reactiva el scroll
-    cameraPreview.style.display = 'none'
-    fileInput.value = ""
-    textInput.value = ""
-}
+//submitBtn.addEventListener('click', () => {
+//    alert('¡Mensaje enviado!')
+//    // Añadimos la canción a la cola
+//    var url = URL_CANCIONES,
+//    params = {
+//        method: 'POST',
+//        mode: 'cors',
+//        body: JSON.stringify({
+//            cancion: "Noche de paz",
+//            dedicatoria: textInput.value,
+//            imagen: cameraPreview.src
+//        }),
+//        headers: { 'Content-Type': 'application/json' },
+//    }
+//
+//    var request = new Request(url, params)
+//    var resp_aux
+//
+//    fetch(request)
+//        .then(res => resp_aux = res.clone())
+//        .then(res => res.json())
+//        .then(res => {
+//            console.log('Cancion puesta a la cola')
+//        })
+//        .catch(err => console.log(err))
+//
+//    closeDialog()
+//    document.body.classList.remove('no-scroll')
+//})
+//
+//
+//// Función para cerrar el modal
+//function closeDialog() {
+//    dialog.close();
+//    document.body.classList.remove('no-scroll'); // Reactiva el scroll
+//    cameraPreview.style.display = 'none'
+//    fileInput.value = ""
+//    textInput.value = ""
+//}
 
 /* ******************************
     * DIV CANCIÓN SONANDO: '<div class="card p-2 m-2">' + name + '</div>'
@@ -317,13 +317,15 @@ const getPlayList = () => {
             //Añadimos canciones a las canciones sin reproducir
             cancionesSinReproducir
                 .filter(cancion => !songsWaiting.includes(cancion))
+                .filter(cancion => !sonando.includes(cancion))
                 .forEach(cancion => appendSongToDiv(SONGS_CONT, cancion, false))
 
+            let e = divsSongsWaiting.map(s => s.innerHTML)
             //Eliminamos canciones de las canciones sin reproducir
             divsSongsWaiting
                 .filter(cancion => !cancionesSinReproducir.includes(cancion.innerHTML))
-                .filter(cancion => !sonando.includes(cancion.innerHTML))
                 .forEach(cancion => cancion.remove())
+
         })
         .catch(error => {
             // alert("Esta habiendo errores con las canciones, disculpe las molestias. Prueba entre las 18:30 y 21:30'(")

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -40,7 +40,8 @@
       grid-gap: 8px;
       width: 100%;
       height: 70%;
-      margin-bottom: 4vh;
+      margin-bottom: 0vh;
+      margin-top: 0vh;
     }
 
     .button {
@@ -52,6 +53,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      font-size: 1.5em; /* Tamaño de texto más grande */
     }
 
     h1 {
@@ -66,26 +68,68 @@
         1px 1px black, -1px -1px black, 1px -1px black, -1px 1px black;
     }
 
-    .blue {
+    h3 {
+      margin-bottom: 0;
+    }
+
+    .azul {
       background-color: #001aff;
     }
 
-    .red {
+    .rojo {
       background-color: #ff1b02;
     }
 
-    .yellow {
+    .amarillo{
       background-color: #ddf312;
     }
 
-    .green {
-      background-color: #2ecc71;
+    .blanco {
+      background-color: #ffffff;
     }
+
+    .pregunta {
+      grid-column: span 2;
+      text-align: center;
+      font-size: 3vh;
+      color: white;
+      text-shadow: 2px 0 black, -2px 0 black, 0 2px black, 0 -2px black,
+        1px 1px black, -1px -1px black, 1px -1px black, -1px 1px black;
+      margin-bottom: 0; /* Eliminado margen inferior */
+      height:0;
+    }
+    #jugadoresLista {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            color : black;
+        }
+    .jugador {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            color : '#000';
+    }
+    #colaCanciones {
+      display : none;
+    }
+    .start-button {
+      background-color : rgb(0, 255, 0);
+      color: '#000'; 
+      padding: '10px';
+      border-radius: '5px';
+      margin-bottom: '10px'; 
+      width: 100%;   
+      padding: 5px;
+    }
+
+
+
   </style>
 </head>
 
 <body id="body">
-  <h3 id="msg">Espere hasta que empiece el Tribial navideño... no cierre ni actualice esta página</h3>
+  <h3 id="msg">Invite o espere otros jugadores</h3>
   <div id="cola-canciones-cont">
     <div id="colaCanciones">
       <div id="sonando" class="p-3 bordes cont">
@@ -94,7 +138,6 @@
         <div id="cancion_sonando" class="card p-2 m-2 ">
           <span id="cancion_sonando_span"></span>
         </div>
-
 
         <!-- CANCIONES EN COLA -->
       </div>
@@ -105,15 +148,22 @@
       </div>
     </div>
   </div>
-  <div class="grid-container" id="botones-cont">
-    <button class="button green" id="simon_dice_verde" onclick="seleccionarRespuesta(this)"></button>
-    <button class="button red" id="simon_dice_rojo" onclick="seleccionarRespuesta(this)"></button>
-    <button class="button yellow" id="simon_dice_amarillo" onclick="seleccionarRespuesta(this)"></button>
-    <button class="button blue" id="simon_dice_azul" onclick="seleccionarRespuesta(this)"></button>
+  <div class="grid-container" id="botones_contestar">
+    <div class="pregunta" id="kahoot_pregunta">
+      Texto de la pregunta
+    </div>
+    <button class="button rojo" id="kahoot_verde" onclick="seleccionarRespuesta(this)">Respuesta 1</button>
+    <button class="button amarillo" id="kahoot_amarillo" onclick="seleccionarRespuesta(this)">Respuesta 3</button>
+    <button class="button blanco" id="kahoot_rojo" onclick="seleccionarRespuesta(this)">Respuesta 2</button>
+    <button class="button azul" id="kahoot_azul" onclick="seleccionarRespuesta(this)">Respuesta 4</button>
+  </div>
+  <div id="jugadoresLista">
+    <h2>Jugadores Actuales</h2>
+    <div id="jugadores"></div>
+    <button class="start-button" id="start-button" onclick="getIniciaPartida()">INICIAR PARTIDA</button>
   </div>
   <script src="assets/js/baseUrl.js"></script>
-  <script src="assets/js/kahoohoo.js"></script>
+  <script src="assets/js/kahoot.js"></script>
   <script src="assets/js/main.js"></script>
 </body>
 
-</html>
